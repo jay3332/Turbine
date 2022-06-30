@@ -1,0 +1,9 @@
+# Config template
+
+# Configuration variables for the database.
+[database]
+host = "localhost" # Defaults to localhost
+port = 5432 # Defaults to 5432
+username = "postgres" # Defaults to postgres
+password = "..." # Database password, remove this if your database does not have one
+database = "turbine" # Defaults to turbine
