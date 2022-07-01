@@ -1,9 +1,13 @@
 #![feature(once_cell)]
 
+pub mod auth;
 pub mod config;
 pub mod database;
 pub mod json;
 pub mod routes;
+
+use axum::{Router, http::StatusCode, routing::get};
+use std::net::SocketAddr;
 
 pub use config::get_config;
 pub use database::get_pool;
@@ -12,6 +16,22 @@ pub use database::get_pool;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     database::connect().await?;
     database::migrate().await;
+    auth::configure_hasher().await;
+
+    let router = Router::new()
+        .route("/api", get(|| async { (StatusCode::OK, "Hello, world!") }))
+        .nest("/api", routes::pastes::router());
+
+    let addr = SocketAddr::from(([127, 0, 0, 1], 8081));
+    let server = axum::Server::bind(&addr)
+        .serve(router.into_make_service())
+        .with_graceful_shutdown(async {
+            tokio::signal::ctrl_c()
+                .await
+                .expect("Failed to listen for Ctrl+C");
+        });
+
+    server.await.expect("Failed to start HTTP server");
 
     Ok(())
 }

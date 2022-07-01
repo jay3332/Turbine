@@ -1,18 +1,22 @@
-use crate::get_pool;
+use crate::{auth::generate_id, get_pool};
 use super::{Authorization, Error, JsonResponse};
 
+use argon2_async::hash;
 use axum::{
-    extract::Path,
+    extract::{Json, Path},
     http::StatusCode,
+    routing::{get, post},
+    Router,
 };
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use serde_repr::{Serialize_repr, Deserialize_repr};
 
-#[derive(Copy, Clone, Debug, Deserialize_repr, Serialize_repr, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, Default, Deserialize_repr, Serialize_repr, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum PasteVisibility {
     Private = 0,
     Protected = 1,
+    #[default]
     Unlisted = 2,
     Discoverable = 3,
 }
@@ -29,6 +33,12 @@ impl From<u8> for PasteVisibility {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct File {
+    filename: Option<String>,
+    content: String,
+}
+
 #[derive(Debug, Serialize)]
 pub struct Paste {
     pub id: String,
@@ -37,6 +47,22 @@ pub struct Paste {
     pub name: String,
     pub description: Option<String>,
     pub visibility: PasteVisibility,
+    pub files: Vec<File>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PastePayload {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    #[serde(default)]
+    pub visibility: PasteVisibility,
+    pub password: Option<String>,
+    pub files: Vec<File>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PasteResponse {
+    pub id: String,
 }
 
 /// GET /pastes/:id
@@ -44,14 +70,7 @@ pub async fn get_paste(
     auth: Option<Authorization>,
     Path(id): Path<String>,
 ) -> Result<JsonResponse<Paste>, JsonResponse<Error>> {
-    if id.starts_with("_") && auth.is_none() {
-        return Err(JsonResponse(
-            StatusCode::BAD_REQUEST,
-            Error {
-                message: "Authorization header required".to_string(),
-            },
-        ));
-    }
+    let db = get_pool();
 
     let paste = sqlx::query!(r#"
         SELECT
@@ -65,7 +84,7 @@ pub async fn get_paste(
         WHERE
             id = $1
     "#, id)
-        .fetch_optional(get_pool())
+        .fetch_optional(db)
         .await?
         .ok_or_else(|| (
             StatusCode::NOT_FOUND,
@@ -74,18 +93,38 @@ pub async fn get_paste(
             }
         ))?;
 
-    // Private
-    if paste.visibility == 0 {
-
+    if paste.visibility <= 1 && auth.is_none() {
+        return Err(JsonResponse(
+            StatusCode::UNAUTHORIZED,
+            Error {
+                message: "Authorization header required".to_string(),
+            },
+        ));
     }
 
+    // Private
+    if paste.visibility == 0 {
+        // todo
+    }
+
+    let files = sqlx::query!("SELECT * FROM files WHERE paste_id = $1 ORDER BY idx ASC", id)
+        .fetch_all(db)
+        .await?
+        .into_iter()
+        .map(|record| File {
+            filename: record.filename,
+            content: record.content,
+        })
+        .collect::<Vec<_>>();
+
     Ok(JsonResponse::ok(Paste {
-        id: paste.id,
+        id,
         author_id: paste.author_id,
         author_name: paste.username,
         name: paste.name,
         description: paste.description,
         visibility: PasteVisibility::from(paste.visibility as u8),
+        files,
     }))
 }
 
@@ -96,5 +135,128 @@ pub async fn get_paste(
 /// - Maximum 16 files
 /// - Each file has a maximum size of 2 MB
 pub async fn post_paste(
+    auth: Option<Authorization>,
+    Json(payload): Json<PastePayload>,
+) -> Result<JsonResponse<PasteResponse>, JsonResponse<Error>> {
+    if let Some(Authorization::Paste(_)) = auth {
+        return Err(JsonResponse(
+            StatusCode::BAD_REQUEST,
+            Error {
+                message: "'Paste' Authorization header type not supported for this route".to_string(),
+            },
+        ));
+    }
 
-)
+    if payload.visibility == PasteVisibility::Private && auth.is_none() {
+        return Err(JsonResponse(
+            StatusCode::BAD_REQUEST,
+            Error {
+                message: "Authorization header required for private pastes".to_string(),
+            },
+        ));
+    }
+
+    if payload.visibility == PasteVisibility::Protected {
+        if let Some(password) = &payload.password {
+            if password.chars().count() < 1 {
+                return Err(JsonResponse(
+                    StatusCode::BAD_REQUEST,
+                    Error {
+                        message: "Password field must be at least 1 character long".to_string(),
+                    }
+                ))
+            }
+        } else {
+            return Err(JsonResponse(
+                StatusCode::BAD_REQUEST,
+                Error {
+                    message: "Missing password field in a paste with protected visibility".to_string(),
+                }
+            ));
+        }
+    }
+
+    if payload.files.len() > 16 {
+        return Err(JsonResponse(
+            StatusCode::BAD_REQUEST,
+            Error {
+                message: format!(
+                    "Received {} files, which is greater than the maximum of 16",
+                    payload.files.len(),
+                ),
+            }
+        ));
+    }
+
+    for (i, File { filename, content }) in payload.files.iter().enumerate() {
+        if let Some(filename) = filename {
+            if filename.chars().count() > 64 {
+                return Err(JsonResponse(
+                    StatusCode::BAD_REQUEST,
+                    Error {
+                        message: format!(
+                            "The filename of the file at index {} (0-indexed) has a length of {}, which surpasses the maximum of 64",
+                            i,
+                            filename.chars().count(),
+                        )
+                    }
+                ))
+            }
+        }
+
+        if content.len() > 2 * 1024 * 1024 {
+            return Err(JsonResponse(
+                StatusCode::PAYLOAD_TOO_LARGE,
+                Error {
+                    message: format!(
+                        "The file at index {} (0-indexed) has a size of {} bytes, which surpasses the maximum of 2 MiB",
+                        i,
+                        content.len(),
+                    ),
+                }
+            ))
+        }
+    }
+
+    let id = generate_id::<12>();
+    let db = get_pool();
+
+    let password = if let Some(password) = payload.password {
+        Some(hash(password).await?)
+    } else {
+        None
+    };
+
+    sqlx::query!(
+        "INSERT INTO pastes VALUES ($1, $2, $3, $4, $5, $6)",
+        id,
+        Option::<String>::None, // TODO: users and user tokens
+        payload.name.unwrap_or_else(|| "Untitled Paste".to_string()),
+        payload.description,
+        payload.visibility as i16,
+        password,
+    )
+    .execute(db)
+    .await?;
+
+    sqlx::query("
+        INSERT INTO files
+        SELECT $1, out.*
+        FROM UNNEST($2, $3, $4)
+        AS out(idx, filename, content)
+    ")
+    .bind(id.clone())
+    .bind((0..payload.files.len() as i16).collect::<Vec<_>>())
+    .bind(payload.files.iter().map(|file| file.filename.clone()).collect::<Vec<_>>())
+    .bind(payload.files.into_iter().map(|file| file.content).collect::<Vec<_>>())
+    .execute(db)
+    .await?;
+
+    Ok(JsonResponse::ok(PasteResponse { id }))
+}
+
+pub fn router() -> Router {
+    Router::new()
+        .route("/pastes/:id", get(get_paste))
+        .route("/pastes", post(post_paste))
+}

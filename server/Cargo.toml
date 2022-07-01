@@ -9,7 +9,9 @@ keywords = ["webserver", "paste"]
 [dependencies]
 argon2-async = "0.2.0"
 axum = { version = "0.5.10", features = ["headers", "ws"] }
+base64 = "0.13.0"
 rand = "0.8.5"
+ring = "0.16.20"
 serde = "1.0.137"
 serde_repr = "0.1.8"
 sqlx = { version = "0.6.0", features = ["postgres", "macros", "offline", "runtime-tokio-rustls", "time"] }

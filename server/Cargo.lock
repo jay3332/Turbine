@@ -1486,7 +1486,9 @@ version = "0.1.0"
 dependencies = [
  "argon2-async",
  "axum",
+ "base64",
  "rand",
+ "ring",
  "serde",
  "serde_repr",
  "sqlx",

@@ -49,3 +49,14 @@ impl From<sqlx::Error> for JsonResponse<Error> {
         )
     }
 }
+
+impl From<argon2_async::Error> for JsonResponse<Error> {
+    fn from(err: argon2_async::Error) -> Self {
+        Self(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Error {
+                message: format!("Could not hash password: {:?}", err),
+            },
+        )
+    }
+}
