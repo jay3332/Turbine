@@ -2,6 +2,7 @@
 
 pub mod config;
 pub mod database;
+pub mod json;
 pub mod routes;
 
 pub use config::get_config;

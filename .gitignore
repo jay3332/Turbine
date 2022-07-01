@@ -8,3 +8,5 @@ server/target/
 **/*.rs.bk
 
 server/config.toml
+
+.env

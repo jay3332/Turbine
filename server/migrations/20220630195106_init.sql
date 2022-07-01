@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS pastes (
     id TEXT NOT NULL PRIMARY KEY,
     author_id TEXT,
+    name TEXT NOT NULL DEFAULT 'Untitled Paste',
+    description TEXT,
     -- Enum member { 0 -> private, 1 -> protected, 2 -> unlisted, 3 -> discoverable }
     visibility SMALLINT NOT NULL,
     -- Will be hashed
@@ -22,6 +24,7 @@ CREATE TABLE IF NOT EXISTS pastes (
 CREATE TABLE IF NOT EXISTS files (
     paste_id TEXT NOT NULL,
     idx SMALLINT NOT NULL,
+    filename TEXT,
     content TEXT NOT NULL,
     PRIMARY KEY (paste_id, idx),
     CONSTRAINT paste_fk
