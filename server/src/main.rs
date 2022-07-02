@@ -1,6 +1,8 @@
 #![feature(once_cell)]
+#![feature(is_some_with)]
 
 pub mod auth;
+pub mod cache;
 pub mod config;
 pub mod database;
 pub mod json;
@@ -9,6 +11,7 @@ pub mod routes;
 use axum::{Router, http::StatusCode, routing::get};
 use std::net::SocketAddr;
 
+pub use cache::{get_cache, get_cache_mut};
 pub use config::get_config;
 pub use database::get_pool;
 
@@ -20,7 +23,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let router = Router::new()
         .route("/api", get(|| async { (StatusCode::OK, "Hello, world!") }))
-        .nest("/api", routes::pastes::router());
+        .nest("/api", routes::pastes::router())
+        .nest("/api", routes::users::router());
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8081));
     let server = axum::Server::bind(&addr)

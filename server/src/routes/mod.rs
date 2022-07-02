@@ -1,22 +1,18 @@
 pub mod pastes;
+pub mod users;
 
-pub use crate::json::JsonResponse;
+pub use crate::{json::JsonResponse, get_cache_mut};
 
 use axum::{
     async_trait,
     body::Body,
-    http::{header::AUTHORIZATION, StatusCode},
+    http::header::AUTHORIZATION,
     extract::{FromRequest, RequestParts},
 };
 use serde::Serialize;
 
 #[derive(Clone, PartialEq, Eq)]
-pub enum Authorization {
-    /// User token
-    User(String),
-    /// Paste password
-    Paste(String),
-}
+pub struct Authorization(pub String);
 
 #[derive(Clone, Serialize)]
 pub struct Error {
@@ -45,26 +41,6 @@ impl FromRequest<Body> for Authorization {
             }
         ))?;
 
-        let mut split = content.split_ascii_whitespace();
-
-        let (ty, content) = split.next()
-            .and_then(|a| split.next().map(|s| (a, s.to_string())))
-            .ok_or_else(|| (
-                400,
-                Error {
-                    message: "Invalid Authorization header. Expected something like 'User ...' or 'Paste ...'".to_string(),
-                }
-            ))?;
-
-        Ok(match ty.to_ascii_lowercase().as_str() {
-            "user" => Self::User(content),
-            "paste" => Self::Paste(content),
-            _ => return Err(JsonResponse(
-                StatusCode::BAD_REQUEST,
-                Error {
-                    message: format!("Invalid Authorization type {:?}", ty),
-                },
-            )),
-        })
+        Ok(Self(get_cache_mut().resolve_token(content.to_string()).await?))
     }
 }

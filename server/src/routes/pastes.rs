@@ -1,9 +1,9 @@
 use crate::{auth::generate_id, get_pool};
 use super::{Authorization, Error, JsonResponse};
 
-use argon2_async::hash;
+use argon2_async::{hash, verify};
 use axum::{
-    extract::{Json, Path},
+    extract::{Json, Path, Query},
     http::StatusCode,
     routing::{get, post},
     Router,
@@ -65,10 +65,16 @@ pub struct PasteResponse {
     pub id: String,
 }
 
+#[derive(Deserialize)]
+pub struct GetPasteQuery {
+    password: Option<String>,
+}
+
 /// GET /pastes/:id
 pub async fn get_paste(
     auth: Option<Authorization>,
     Path(id): Path<String>,
+    Query(query): Query<GetPasteQuery>,
 ) -> Result<JsonResponse<Paste>, JsonResponse<Error>> {
     let db = get_pool();
 
@@ -93,7 +99,7 @@ pub async fn get_paste(
             }
         ))?;
 
-    if paste.visibility <= 1 && auth.is_none() {
+    if paste.visibility == 0 && auth.is_none() {
         return Err(JsonResponse(
             StatusCode::UNAUTHORIZED,
             Error {
@@ -102,9 +108,46 @@ pub async fn get_paste(
         ));
     }
 
-    // Private
-    if paste.visibility == 0 {
-        // todo
+    let authorized = if let (
+        Some(Authorization(u)),
+        Some(author_id),
+    ) = (&auth, &paste.author_id) {
+        u == author_id
+    } else {
+        paste.visibility >= 2
+    };
+
+    if paste.visibility == 1 && !authorized {
+        if let Some(password) = query.password {
+            if !verify(
+                password,
+                paste
+                    .password
+                    .clone()
+                    .ok_or_else(|| (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Error {
+                            message: "Accessed a malformed paste! This shouldn't happen.".to_string(),
+                        },
+                    ))?
+            )
+            .await?
+            {
+                return Err(JsonResponse(
+                    StatusCode::UNAUTHORIZED,
+                    Error {
+                        message: "Incorrect password".to_string(),
+                    },
+                ));
+            }
+        } else {
+            return Err(JsonResponse(
+                StatusCode::UNAUTHORIZED,
+                Error {
+                    message: r#"Please provide a "password" query parameter containing this paste's password."#.to_string(),
+                },
+            ));
+        }
     }
 
     let files = sqlx::query!("SELECT * FROM files WHERE paste_id = $1 ORDER BY idx ASC", id)
@@ -138,15 +181,6 @@ pub async fn post_paste(
     auth: Option<Authorization>,
     Json(payload): Json<PastePayload>,
 ) -> Result<JsonResponse<PasteResponse>, JsonResponse<Error>> {
-    if let Some(Authorization::Paste(_)) = auth {
-        return Err(JsonResponse(
-            StatusCode::BAD_REQUEST,
-            Error {
-                message: "'Paste' Authorization header type not supported for this route".to_string(),
-            },
-        ));
-    }
-
     if payload.visibility == PasteVisibility::Private && auth.is_none() {
         return Err(JsonResponse(
             StatusCode::BAD_REQUEST,
@@ -230,7 +264,7 @@ pub async fn post_paste(
     sqlx::query!(
         "INSERT INTO pastes VALUES ($1, $2, $3, $4, $5, $6)",
         id,
-        Option::<String>::None, // TODO: users and user tokens
+        auth.map(|auth| auth.0),
         payload.name.unwrap_or_else(|| "Untitled Paste".to_string()),
         payload.description,
         payload.visibility as i16,
