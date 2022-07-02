@@ -1,5 +1,5 @@
-use crate::{auth::generate_id, get_pool};
 use super::{Authorization, Error, JsonResponse};
+use crate::{auth::generate_id, get_pool};
 
 use argon2_async::{hash, verify};
 use axum::{
@@ -8,8 +8,8 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use serde::{Serialize, Deserialize};
-use serde_repr::{Serialize_repr, Deserialize_repr};
+use serde::{Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 
 #[derive(Copy, Clone, Debug, Default, Deserialize_repr, Serialize_repr, PartialEq, Eq, Hash)]
 #[repr(u8)]
@@ -78,7 +78,8 @@ pub async fn get_paste(
 ) -> Result<JsonResponse<Paste>, JsonResponse<Error>> {
     let db = get_pool();
 
-    let paste = sqlx::query!(r#"
+    let paste = sqlx::query!(
+        r#"
         SELECT
             pastes.*,
             u.username AS "username?"
@@ -89,15 +90,19 @@ pub async fn get_paste(
         ) AS u ON username IS NOT NULL
         WHERE
             id = $1
-    "#, id)
-        .fetch_optional(db)
-        .await?
-        .ok_or_else(|| (
+    "#,
+        id
+    )
+    .fetch_optional(db)
+    .await?
+    .ok_or_else(|| {
+        (
             StatusCode::NOT_FOUND,
             Error {
                 message: "Paste not found".to_string(),
-            }
-        ))?;
+            },
+        )
+    })?;
 
     if paste.visibility == 0 && auth.is_none() {
         return Err(JsonResponse(
@@ -108,10 +113,7 @@ pub async fn get_paste(
         ));
     }
 
-    let authorized = if let (
-        Some(Authorization(u)),
-        Some(author_id),
-    ) = (&auth, &paste.author_id) {
+    let authorized = if let (Some(Authorization(u)), Some(author_id)) = (&auth, &paste.author_id) {
         u == author_id
     } else {
         paste.visibility >= 2
@@ -121,15 +123,15 @@ pub async fn get_paste(
         if let Some(password) = query.password {
             if !verify(
                 password,
-                paste
-                    .password
-                    .clone()
-                    .ok_or_else(|| (
+                paste.password.clone().ok_or_else(|| {
+                    (
                         StatusCode::INTERNAL_SERVER_ERROR,
                         Error {
-                            message: "Accessed a malformed paste! This shouldn't happen.".to_string(),
+                            message: "Accessed a malformed paste! This shouldn't happen."
+                                .to_string(),
                         },
-                    ))?
+                    )
+                })?,
             )
             .await?
             {
@@ -150,15 +152,18 @@ pub async fn get_paste(
         }
     }
 
-    let files = sqlx::query!("SELECT * FROM files WHERE paste_id = $1 ORDER BY idx ASC", id)
-        .fetch_all(db)
-        .await?
-        .into_iter()
-        .map(|record| File {
-            filename: record.filename,
-            content: record.content,
-        })
-        .collect::<Vec<_>>();
+    let files = sqlx::query!(
+        "SELECT * FROM files WHERE paste_id = $1 ORDER BY idx ASC",
+        id
+    )
+    .fetch_all(db)
+    .await?
+    .into_iter()
+    .map(|record| File {
+        filename: record.filename,
+        content: record.content,
+    })
+    .collect::<Vec<_>>();
 
     Ok(JsonResponse::ok(Paste {
         id,
@@ -197,15 +202,16 @@ pub async fn post_paste(
                     StatusCode::BAD_REQUEST,
                     Error {
                         message: "Password field must be at least 1 character long".to_string(),
-                    }
-                ))
+                    },
+                ));
             }
         } else {
             return Err(JsonResponse(
                 StatusCode::BAD_REQUEST,
                 Error {
-                    message: "Missing password field in a paste with protected visibility".to_string(),
-                }
+                    message: "Missing password field in a paste with protected visibility"
+                        .to_string(),
+                },
             ));
         }
     }
@@ -218,7 +224,7 @@ pub async fn post_paste(
                     "Received {} files, which is greater than the maximum of 16",
                     payload.files.len(),
                 ),
-            }
+            },
         ));
     }
 
@@ -234,7 +240,7 @@ pub async fn post_paste(
                             filename.chars().count(),
                         )
                     }
-                ))
+                ));
             }
         }
 
@@ -248,7 +254,7 @@ pub async fn post_paste(
                         content.len(),
                     ),
                 }
-            ))
+            ));
         }
     }
 
@@ -273,16 +279,30 @@ pub async fn post_paste(
     .execute(db)
     .await?;
 
-    sqlx::query("
+    sqlx::query(
+        "
         INSERT INTO files
         SELECT $1, out.*
         FROM UNNEST($2, $3, $4)
         AS out(idx, filename, content)
-    ")
+    ",
+    )
     .bind(id.clone())
     .bind((0..payload.files.len() as i16).collect::<Vec<_>>())
-    .bind(payload.files.iter().map(|file| file.filename.clone()).collect::<Vec<_>>())
-    .bind(payload.files.into_iter().map(|file| file.content).collect::<Vec<_>>())
+    .bind(
+        payload
+            .files
+            .iter()
+            .map(|file| file.filename.clone())
+            .collect::<Vec<_>>(),
+    )
+    .bind(
+        payload
+            .files
+            .into_iter()
+            .map(|file| file.content)
+            .collect::<Vec<_>>(),
+    )
     .execute(db)
     .await?;
 

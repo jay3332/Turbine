@@ -1,8 +1,11 @@
-use argon2_async::{Config, set_config};
+use argon2_async::{set_config, Config};
 use base64::{encode_config, URL_SAFE_NO_PAD};
-use ring::rand::{SystemRandom, SecureRandom};
+use ring::rand::{SecureRandom, SystemRandom};
 
-use std::{sync::OnceLock, time::{SystemTime, UNIX_EPOCH}};
+use std::{
+    sync::OnceLock,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 pub static RNG: OnceLock<SystemRandom> = OnceLock::new();
 pub const TOKEN_EPOCH: u128 = 1_577_836_800_000; // Jan 1 2020 @ 00:00:00 UTC
@@ -33,9 +36,10 @@ pub fn get_epoch_time() -> u128 {
 // <id>.<epoch as string as b64>.<32 random bytes as b64>
 pub fn generate_token(mut user_id: String) -> String {
     user_id.push('.');
-    user_id.push_str(
-        &*encode_config(get_epoch_time().to_string().as_bytes(), URL_SAFE_NO_PAD)
-    );
+    user_id.push_str(&*encode_config(
+        get_epoch_time().to_string().as_bytes(),
+        URL_SAFE_NO_PAD,
+    ));
     user_id.push('.');
     user_id.push_str(&*{
         let dest = &mut [0_u8; 32];

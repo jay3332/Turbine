@@ -8,7 +8,7 @@ pub mod database;
 pub mod json;
 pub mod routes;
 
-use axum::{Router, http::StatusCode, routing::get};
+use axum::{http::StatusCode, routing::get, Router};
 use std::net::SocketAddr;
 
 pub use cache::{get_cache, get_cache_mut};

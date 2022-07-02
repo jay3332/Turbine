@@ -2,8 +2,8 @@ use crate::routes::Error;
 
 use axum::{
     http::StatusCode,
-    Json,
     response::{IntoResponse, Response},
+    Json,
 };
 use serde::Serialize;
 
@@ -25,9 +25,8 @@ impl<T: Serialize> IntoResponse for JsonResponse<T> {
 impl<T: Serialize> From<(u16, T)> for JsonResponse<T> {
     fn from((status, json): (u16, T)) -> Self {
         Self(
-            StatusCode::from_u16(status.into()).expect(
-                "error while converting into a status code, it's probably invalid.",
-            ),
+            StatusCode::from_u16(status.into())
+                .expect("error while converting into a status code, it's probably invalid."),
             json,
         )
     }

@@ -1,6 +1,6 @@
 //! A low-effort and simple hashmap-based cache. I plan to use Redis for this in the future.
 
-use crate::{json::JsonResponse, routes::Error, get_pool};
+use crate::{get_pool, json::JsonResponse, routes::Error};
 use std::{collections::HashMap, sync::OnceLock};
 
 pub static mut CACHE: OnceLock<Cache> = OnceLock::new();
@@ -25,13 +25,15 @@ impl Cache {
             sqlx::query!("SELECT user_id FROM tokens WHERE token = $1", token)
                 .fetch_optional(get_pool())
                 .await?
-                .ok_or_else(|| (
-                    404,
-                    Error {
-                        message: "Invalid authorization token".to_string(),
-                    },
-                ))?
-                .user_id
+                .ok_or_else(|| {
+                    (
+                        404,
+                        Error {
+                            message: "Invalid authorization token".to_string(),
+                        },
+                    )
+                })?
+                .user_id,
         )
     }
 }
