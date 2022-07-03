@@ -44,7 +44,7 @@ If you'd like to contribute to Turbine, make sure you meet the following require
 - Code works properly
 
 ### As a general rule of thumb:
-- Commit messages should be in the present tense, e.g. `Add feature` instead off `Added feature`
+- Commit messages should be in present tense, e.g. `Add feature` instead of `Added feature`
 - Keep lines of code under 120 characters long
 
 ## Self-hosting?
