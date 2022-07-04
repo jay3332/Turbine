@@ -16,8 +16,8 @@ const Container = styled.div`
   
   img {
     width: auto;
-    height: 48px;
-    padding: 6px 8px;
+    height: 42px;
+    padding-left: 8px;
   }
 `;
 

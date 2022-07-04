@@ -2,10 +2,12 @@ import type { NextPage } from 'next'
 import Head from 'next/head'
 import Image from 'next/future/image'
 import Link from 'next/link'
+import { useRouter } from "next/router";
 import styled, { keyframes } from 'styled-components'
 
 import NewIcon from '../public/icon-plus.svg';
 import GlobeIcon from '../public/icon-earth.svg';
+import {useEffect} from "react";
 
 const Container = styled.div`
   display: flex;
@@ -18,7 +20,7 @@ const Banner = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: max(24px, 8vh) 0 24px 0;
 `;
 
 const Animation = keyframes`
@@ -31,7 +33,7 @@ const Animation = keyframes`
 const TurbineText = styled.div`
   text-align: center;
   font-weight: 800;
-  font-size: min(24vw, 180px);
+  font-size: min(22vw, 180px);
   padding: 12px;
   background: linear-gradient(
     to right,
@@ -47,7 +49,7 @@ const TurbineText = styled.div`
   -moz-background-clip: text;
   text-fill-color: transparent;
   -webkit-text-fill-color: transparent;
-  animation: ${Animation} 5s cubic-bezier(1, 0.07, 0.24, 0.9) infinite;
+  animation: ${Animation} 7s cubic-bezier(0.73, 0.04, 0.56, 0.93) infinite;
 `;
 
 const Description = styled.div`
@@ -60,24 +62,53 @@ const Description = styled.div`
 const Buttons = styled.div`
   margin: 18px;
   display: flex;
+  
+  @media screen and (max-width: 767px) {
+    flex-direction: column;
+    align-items: center;
+    
+    button {
+      width: 60vw;
+      margin: 8px;
+    }
+  }
+`;
+
+const Hint = styled.div`
+  user-select: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+  
+  kbd {
+    padding: 2px 5px;
+    border: var(--color-bg-3) 2px solid;
+    border-radius: 4px;
+    color: var(--color-text);
+    line-height: 1em;
+  }
+  
+  @media screen and (max-width: 767px) {
+    display: none;
+  }
 `;
 
 const Bump = keyframes`
-    from {
-        transform: translateY(0px);
-    }
-    to {
-        transform: translateY(-5px);
-    }
+  from {
+    transform: translateY(0px);
+  }
+  to {
+    transform: translateY(-5px);
+  }
 `;
 
 const Unbump = keyframes`
-    from {
-        transform: translateY(-5px);
-    }
-    to {
-        transform: translateY(0px);
-    }
+  from {
+    transform: translateY(-5px);
+  }
+  to {
+    transform: translateY(0px);
+  }
 `;
 
 const BaseButton = styled.button`
@@ -148,6 +179,16 @@ const DiscoverPastesButton = styled(BaseButton)`
 `;
 
 const Home: NextPage = () => {
+  const router = useRouter();
+
+  useEffect(() => {
+    document.addEventListener("keydown", async (event) => {
+      if (event.key.toLowerCase() === 'n') {
+        await router.push("/new");
+      }
+    })
+  }, [router])
+
   return (
     <Container>
       <Head>
@@ -177,6 +218,9 @@ const Home: NextPage = () => {
           </a>
         </Link>
       </Buttons>
+      <Hint>
+        Alternatively, press <kbd>N</kbd> to create a new paste
+      </Hint>
     </Container>
   )
 }

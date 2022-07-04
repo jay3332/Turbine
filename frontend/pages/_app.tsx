@@ -12,6 +12,7 @@ const GlobalStyle = createGlobalStyle`
 
     --color-text: #ffffff;
     --color-text-secondary: #757575;
+    --color-text-tertiary: #626262;
     --color-link: #0dc2ff;
     --color-link-hover: #0df3ff;
     --color-bg-0: #0f0f0f;
