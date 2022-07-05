@@ -13,23 +13,18 @@ fn default_color() -> String {
     "#FFFFFF".to_string()
 }
 
-fn default_ace_mode() -> String {
-    "text".to_string()
-}
-
 #[derive(Deserialize, Debug)]
 struct RawEntry {
     r#type: String,
     #[serde(default = "default_color")]
     color: String,
-    #[serde(default = "Vec::new")]
+    #[serde(default)]
     aliases: Vec<String>,
-    #[serde(default = "Vec::new")]
+    #[serde(default)]
     filenames: Vec<String>,
-    #[serde(default = "Vec::new")]
+    #[serde(default)]
     extensions: Vec<String>,
-    #[serde(default = "default_ace_mode")]
-    ace_mode: String,
+    ace_mode: Option<String>,
 }
 
 #[derive(Serialize, Debug)]
@@ -86,6 +81,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
     ) in data
     {
+        let ace_mode = if let Some(mode) = ace_mode {
+            mode
+        } else {
+            continue;
+        };
+
         resolved.insert(
             name.clone(),
             Entry {
