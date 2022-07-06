@@ -1,0 +1,280 @@
+{
+  "db": "PostgreSQL",
+  "32db067ee512f84092fda411950c08c46518b2c6be846c1b07072d8b10840fc7": {
+    "query": "SELECT user_id FROM tokens WHERE token = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "user_id",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "4560c237741ce9d4166aecd669770b3360a3ac71e649b293efb88d92c3254068": {
+    "query": "SELECT id FROM users WHERE email = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "53b42ad582c42123575242836dea5b16c68be148adccef132e6fb9cbff824f82": {
+    "query": "INSERT INTO tokens VALUES ($1, $2)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "6b72a77f3cceef19ae665b115a21bb0fc5c3d6289c9b185705dd0bf54f6de2f2": {
+    "query": "INSERT INTO users VALUES ($1, $2, $3, $4)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "771f2a72d0a796e25f90e1837fc601593a7071e8d790fcda5dcf004caa95fb45": {
+    "query": "SELECT id, password FROM users WHERE username = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "password",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false
+      ]
+    }
+  },
+  "b3de938995c744adfb9171880990e92f295faf8618cf0f5650d91c9067be6821": {
+    "query": "SELECT id, password FROM users WHERE email = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "password",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false
+      ]
+    }
+  },
+  "d884fcbfadda026ccaef127244f67218e749df0b3fe694e27232e84f1f1d4638": {
+    "query": "INSERT INTO pastes VALUES ($1, $2, $3, $4, $5, $6)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Int2",
+          "Text"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "dd99e48b1572e25db38f03da95984fda1072913b29bb6b3753a0d351583dfff6": {
+    "query": "SELECT id FROM users WHERE username = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "e0834102fac06bfbac4e934fab5ee55e548d930ad8a72fbcf49124ec9ff44bcc": {
+    "query": "\n        SELECT\n            pastes.*,\n            u.username AS \"username?\"\n        FROM\n            pastes\n        LEFT JOIN LATERAL (\n            SELECT username FROM users WHERE users.id = pastes.author_id\n        ) AS u ON username IS NOT NULL\n        WHERE\n            id = $1\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "author_id",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "description",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "visibility",
+          "type_info": "Int2"
+        },
+        {
+          "ordinal": 5,
+          "name": "password",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "username?",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false
+      ]
+    }
+  },
+  "ee13aee915382a5b5d745363e08c6367a49a2b4192e9cdcfd3fcafc16d85b64b": {
+    "query": "SELECT username, email FROM users WHERE id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "username",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "email",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        true
+      ]
+    }
+  },
+  "ff04920d95bdd46d50b8a0d95824669dcab961c43b09b2aabd89848ca1dbd2e9": {
+    "query": "SELECT * FROM files WHERE paste_id = $1 ORDER BY idx ASC",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "paste_id",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "idx",
+          "type_info": "Int2"
+        },
+        {
+          "ordinal": 2,
+          "name": "filename",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "content",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        true,
+        false
+      ]
+    }
+  }
+}
