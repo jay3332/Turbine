@@ -8,6 +8,10 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  
+defaults:
+  run:
+    working-directory: server
 
 jobs:
   build:
@@ -21,9 +25,6 @@ jobs:
       with:
         toolchain: nightly
         override: true
-    
-    - name: Cd into server
-      run: cd server
 
     - name: Setup cache
       uses: Swatinem/rust-cache@v1
