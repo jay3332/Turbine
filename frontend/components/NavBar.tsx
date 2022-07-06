@@ -27,8 +27,8 @@ export default function NavBar() {
   return (
     <Container>
       <Link href="/">
-        <a>
-          <Image src={isBreakpoint ? TurbineLogo : TurbineBanner} alt="Turbine" />
+        <a tabIndex={-1}>
+          <Image src={isBreakpoint ? TurbineLogo : TurbineBanner} alt="Turbine" priority />
         </a>
       </Link>
     </Container>

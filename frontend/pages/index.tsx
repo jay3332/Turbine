@@ -203,15 +203,15 @@ const Home: NextPage = () => {
       <Buttons>
         <Link href="/new">
           <a>
-            <NewPasteButton>
-            <Image src={NewIcon} alt="New" />
+            <NewPasteButton tabIndex={-1}>
+              <Image src={NewIcon} alt="New" />
               New Paste
             </NewPasteButton>
           </a>
         </Link>
         <Link href="/discover">
           <a>
-            <DiscoverPastesButton>
+            <DiscoverPastesButton tabIndex={-1}>
               <Image src={GlobeIcon} alt="Globe" />
               Discover Pastes
             </DiscoverPastesButton>

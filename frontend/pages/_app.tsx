@@ -6,9 +6,9 @@ import Head from "next/head";
 const GlobalStyle = createGlobalStyle`
   :root {
     --font-sans-serif: -apple-system, BlinkMacSystemFont, Inter, Segoe UI, Roboto, Oxygen,
-    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+      Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
     --font-monospace: Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono,
-    Bitstream Vera Sans Mono, 'Courier New', monospace;
+      Bitstream Vera Sans Mono, 'Courier New', monospace;
 
     --color-text: #ffffff;
     --color-text-secondary: #858585;
@@ -55,6 +55,48 @@ const GlobalStyle = createGlobalStyle`
   a:hover {
     color: var(--color-link-hover);
   }
+  
+  .ace_autocomplete {
+    border-radius: 2px;
+    
+    * {
+      font-family: var(--font-monospace);
+    }
+    
+    .ace_line-hover {
+      transition: all 0.2s ease;
+    }
+    
+    span.ace_completion-meta {
+      font-weight: 500;
+      font-style: italic;
+      opacity: 0.3;
+      user-select: none;
+    }
+  }
+  
+  .ace_tooltip {
+    font-family: var(--font-monospace);
+    background-color: var(--color-bg-2);
+    border: var(--color-bg-3) 2px solid;
+    border-radius: 2px;
+    padding: 6px;
+    font-size: 0.85em;
+    transition: all 0.3s ease;
+    
+    b {
+      font-family: var(--font-sans-serif);
+      font-weight: 500;
+    }
+    
+    hr {
+      opacity: 0.2;
+    }
+    
+    &, * {
+      color: var(--color-text);
+    }
+  }
 `;
 
 export default function App({ Component, pageProps }: AppProps) {
@@ -68,7 +110,6 @@ export default function App({ Component, pageProps }: AppProps) {
           <meta property="og:image" content="https://cdn.lambdabot.cf/uploads/turbine_logo.png" />
           <meta property="og:description" content="A modern and open-source pastebin service." />
           <meta property="theme-color" content="#0d6aff" />
-          <link rel="icon" type="image/png" href="https://cdn.lambdabot.cf/uploads/turbine_logo.png" />
         </Head>
         <NavBar />
         <Component {...pageProps} />
