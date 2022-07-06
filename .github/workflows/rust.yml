@@ -21,6 +21,9 @@ jobs:
       with:
         toolchain: nightly
         override: true
+    
+    - name: Cd into server
+      run: cd server
 
     - name: Setup cache
       uses: Swatinem/rust-cache@v1
