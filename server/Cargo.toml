@@ -18,3 +18,5 @@ serde_repr = "0.1.8"
 sqlx = { version = "0.6.0", features = ["postgres", "macros", "offline", "runtime-tokio-rustls", "time"] }
 tokio = { version = "1.19.2", features = ["full"] }
 toml = "0.5.9"
+forwarded-header-value = "0.1"
+tower-layer = "0.3"
