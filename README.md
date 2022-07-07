@@ -27,6 +27,7 @@ have many of these features inspired by GitHub Gist while still maintaining a cl
 - Theme and font customization
 
 ### TODO:
+- Drafts
 - Ratelimiting
 - Expiring pastes
 - Store paste creation dates

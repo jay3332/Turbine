@@ -96,6 +96,11 @@ const GlobalStyle = createGlobalStyle`
     &, * {
       color: var(--color-text);
     }
+    
+    .ace_search {
+      background-color: var(--color-bg-2) !important;
+      border: none;
+    }
   }
 `;
 
@@ -110,6 +115,7 @@ export default function App({ Component, pageProps }: AppProps) {
           <meta property="og:image" content="https://cdn.lambdabot.cf/uploads/turbine_logo.png" />
           <meta property="og:description" content="A modern and open-source pastebin service." />
           <meta property="theme-color" content="#0d6aff" />
+          <link rel="icon" type="image/png" href="https://cdn.lambdabot.cf/uploads/turbine_logo.png" />
         </Head>
         <NavBar />
         <Component {...pageProps} />

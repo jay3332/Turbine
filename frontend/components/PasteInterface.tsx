@@ -51,6 +51,11 @@ export interface PasteInterfaceProps {
   data?: InboundPasteData;
 }
 
+export interface EditorOptions {
+  tabSize: number;
+  useSoftTabs: boolean;
+}
+
 const Container = styled.div`
   display: block;
   width: auto;
@@ -63,7 +68,7 @@ const Container = styled.div`
 
 const Title = styled.input`
   font-weight: 600;
-  font-size: 22px;
+  font-size: 24px;
   padding: 6px;
   background-color: transparent;
   border: var(--color-bg-2) 3px dashed;
@@ -118,8 +123,13 @@ const File = styled.div<{ focused: boolean }>`
 const FileHeader = styled.div`
   padding: 6px;
   display: flex;
-  align-items: center;
-  justify-content: center;
+`;
+
+const FileConfig = styled.div`
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
 `;
 
 const FilenameInput = styled.input`
@@ -143,6 +153,37 @@ const FilenameInput = styled.input`
   }
 `;
 
+const FileConfigRow = styled.div`
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 6px;
+  align-items: center;
+`;
+
+const FileConfigLabel = styled.label`
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--color-text-tertiary);
+  user-select: none;
+  padding-right: 6px;
+`;
+
+const TabSizeInput = styled.input`
+  border: transparent 2px solid;
+  font-weight: 500;
+  font-size: 15px;
+  padding: 4px;
+  background-color: var(--color-bg-2);
+  border-radius: 4px;
+  transition: all 0.4s ease;
+  
+  &:focus {
+    border: var(--color-primary) 2px solid;
+    outline: none;
+  }
+`;
+
 const BaseEditor = styled(AceEditor)`
   border-radius: 0 0 4px 4px;
   width: 100% !important;
@@ -150,8 +191,9 @@ const BaseEditor = styled(AceEditor)`
   
   &, * {
     font-family: var(--font-monospace);
-    line-height: 1.5em;
+    line-height: 1.675em;
     color: unset;
+    font-variant-ligatures: contextual;
   }
 `;
 
@@ -159,7 +201,7 @@ const ArrowImage = styled(Image)`
   filter: invert(100%) brightness(100%);
   width: 14px;
   height: 14px;
-  margin: 4px 8px;
+  margin: 10px 8px 0 8px;
   opacity: 0.4;
   user-select: none;
   transition: opacity 0.3s ease;
@@ -196,7 +238,7 @@ const LoadingContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 64px 0;
   width: 100%;
   box-sizing: border-box;
 `;
@@ -216,9 +258,10 @@ export interface EditorProps {
   onFocus(): any;
   onBlur(): any;
   onChange(value: string): any;
+  options: EditorOptions;
 }
 
-export function Editor({ filename, language, value, onFocus, onBlur, onChange }: EditorProps) {
+export function Editor({ filename, language, value, onFocus, onBlur, onChange, options }: EditorProps) {
   let [ mode, setMode ] = useState<string>();
   let [ hydrated, setHydrated ] = useState(false);
 
@@ -291,8 +334,8 @@ export function Editor({ filename, language, value, onFocus, onBlur, onChange }:
         enableEmmet: true,
         showLineNumbers: true,
         cursorStyle: 'smooth',
-        useSoftTabs: true,
-        tabSize: 4, // TODO: Customizable tab sizes/soft tabs
+        useSoftTabs: options.useSoftTabs,
+        tabSize: options.tabSize,
         minLines: 10,
         maxLines: Infinity,
       }}
@@ -301,17 +344,23 @@ export function Editor({ filename, language, value, onFocus, onBlur, onChange }:
   )
 }
 
+const defaultEditorOptions: EditorOptions = {
+  tabSize: 4,
+  useSoftTabs: true,
+}
+
 export default function PasteInterface({ callback, data }: PasteInterfaceProps) {
   const editing = callback != null;
 
   const [ title, setTitle ] = useState(data?.title)
   const [ description, setDescription ] = useState(data?.description)
 
-  let initialState = data?.files.map(file => ({ ...file, expanded: false }))
+  let initialState = data?.files.map(file => ({ ...file, expanded: false, options: {...defaultEditorOptions} }))
     || [{
       filename: "main",
       content: "",
       expanded: false,
+      options: {...defaultEditorOptions},
     }];
   initialState[0]!.expanded = true;
 
@@ -330,7 +379,7 @@ export default function PasteInterface({ callback, data }: PasteInterfaceProps) 
           target.style.height = target.scrollHeight + 6 + "px"
         }}
       />
-      {files.map(({ filename, content, expanded }, i) => (
+      {files.map(({ filename, content, expanded, options }, i) => (
         <File focused={i === focused} key={`file:${i}`}>
           <FileHeader>
             <ArrowImage
@@ -346,10 +395,32 @@ export default function PasteInterface({ callback, data }: PasteInterfaceProps) 
                 setFiles(f);
               }}
             />
-            <FilenameInput placeholder="Enter filename..." defaultValue={filename} onChange={e => {
-              files[i].filename = e.target.value;
-              setFiles(files);
-            }} />
+            <FileConfig>
+              <FilenameInput placeholder="Enter filename..." defaultValue={filename} onChange={e => {
+                files[i].filename = e.target.value;
+                setFiles(files);
+              }} />
+              {expanded && (
+                <FileConfigRow>
+                  <FileConfigLabel>
+                    Tab Size
+                  </FileConfigLabel>
+                  <TabSizeInput
+                    type="number"
+                    min={1}
+                    max={8}
+                    maxLength={1}
+                    defaultValue={options.tabSize}
+                    step={1}
+                    onChange={e => {
+                      // @ts-ignore
+                      e.target.value = Math.max(1, Math.min(8, e.target.value.at(-1) ?? 4));
+                      files[i].options.tabSize = parseInt(e.target.value);
+                    }}
+                  />
+                </FileConfigRow>
+              )}
+            </FileConfig>
           </FileHeader>
           {expanded && (
             <Editor
@@ -365,6 +436,7 @@ export default function PasteInterface({ callback, data }: PasteInterfaceProps) 
                 files[i].content = value;
                 setFiles(files);
               }}
+              options={options}
             />
           )}
         </File>

@@ -24,7 +24,7 @@ struct RawEntry {
     filenames: Vec<String>,
     #[serde(default)]
     extensions: Vec<String>,
-    ace_mode: Option<String>,
+    ace_mode: String,
 }
 
 #[derive(Serialize, Debug)]
@@ -74,18 +74,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         RawEntry {
             r#type,
             aliases,
-            ace_mode,
+            mut ace_mode,
             color,
-            extensions,
+            mut extensions,
             filenames,
         },
     ) in data
     {
-        let ace_mode = if let Some(mode) = ace_mode {
-            mode
-        } else {
+        // Special case: remove extension .ts/.tsx to prioritize TypeScript/TSX language
+        if name == "XML" {
+            extensions.retain(|ext| ext != ".ts" && ext != ".tsx");
+        }
+
+        // Special case: use the TSX ace mode instead of the default JavaScript
+        else if name == "TSX" {
+            ace_mode = "tsx".to_string();
+        }
+
+        // Special case: use the Kotlin ace mode instead of text
+        else if name == "Kotlin" {
+            ace_mode = "kotlin".to_string();
+        }
+
+        // Remove anything that can give a false assumption to the user that
+        // the language is supported, even though it really is just text
+        if ace_mode == "text" && name != "Text" {
             continue;
-        };
+        }
 
         resolved.insert(
             name.clone(),
