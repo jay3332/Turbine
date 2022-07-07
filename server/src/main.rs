@@ -7,6 +7,7 @@ pub mod config;
 pub mod database;
 pub mod json;
 pub mod routes;
+pub mod ratelimit;
 
 use axum::{http::StatusCode, routing::get, Router};
 use std::net::SocketAddr;
@@ -28,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8081));
     let server = axum::Server::bind(&addr)
-        .serve(router.into_make_service())
+        .serve(router.into_make_service_with_connect_info::<SocketAddr>())
         .with_graceful_shutdown(async {
             tokio::signal::ctrl_c()
                 .await

@@ -1,0 +1,45 @@
+name: JS CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+defaults:
+  run:
+    working-directory: frontend
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Use Node.js 16
+      uses: actions/setup-node@v3
+      with:
+        node-version: 16
+        cache: 'yarn'
+        cache-dependency-path: frontend/yarn.lock
+
+    - uses: actions/cache@v2
+      with:
+        path: frontend/.next/cache
+        # Generate a new cache whenever packages or source files change.
+        key: ${{ runner.os }}-nextjs-${{ hashFiles('**/yarn.lock') }}-${{ hashFiles('frontend/**.[jt]s', 'frontend/**.[jt]sx') }}
+        # If source files changed but packages didn't, rebuild from a prior cache.
+        restore-keys: |
+          ${{ runner.os }}-nextjs-${{ hashFiles('**/yarn.lock') }}-
+
+
+    - run: yarn install --immutable
+    - run: yarn run lint
+    - run: yarn run build
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: Next.JS artifact
+        path: frontend/.next/
