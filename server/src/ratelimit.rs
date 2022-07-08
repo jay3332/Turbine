@@ -91,12 +91,12 @@ where
             None => {
                 return Box::pin(async {
                     Ok(JsonResponse(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Error {
-                        message: "Could not resolve your IP address, which is needed for security and DoS protection purposes."
-                            .to_string(),
-                    }
-                ).into_response())
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Error {
+                            message: "Could not resolve your IP address, which is needed for security and DoS protection purposes."
+                                .to_string(),
+                        }
+                    ).into_response())
                 })
             }
         };
