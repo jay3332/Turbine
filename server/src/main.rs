@@ -1,13 +1,15 @@
+#![feature(async_closure)]
 #![feature(once_cell)]
 #![feature(is_some_with)]
+#![feature(try_blocks)]
 
 pub mod auth;
 pub mod cache;
 pub mod config;
 pub mod database;
 pub mod json;
-pub mod routes;
 pub mod ratelimit;
+pub mod routes;
 
 use axum::{http::StatusCode, routing::get, Router};
 use std::net::SocketAddr;
@@ -15,6 +17,7 @@ use std::net::SocketAddr;
 pub use cache::{get_cache, get_cache_mut};
 pub use config::get_config;
 pub use database::get_pool;
+pub use ratelimit::ratelimit;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

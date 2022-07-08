@@ -1,9 +1,10 @@
 use super::{Authorization, Error, JsonResponse};
-use crate::{auth::generate_id, get_pool};
+use crate::{auth::generate_id, get_pool, ratelimit};
 
 use argon2_async::{hash, verify};
 use axum::{
     extract::{Json, Path, Query},
+    handler::Handler,
     http::StatusCode,
     routing::{get, post},
     Router,
@@ -311,6 +312,6 @@ pub async fn post_paste(
 
 pub fn router() -> Router {
     Router::new()
-        .route("/pastes/:id", get(get_paste))
-        .route("/pastes", post(post_paste))
+        .route("/pastes/:id", get(get_paste.layer(ratelimit(10, 15))))
+        .route("/pastes", post(post_paste.layer(ratelimit(2, 5))))
 }
