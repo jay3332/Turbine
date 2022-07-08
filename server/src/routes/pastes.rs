@@ -1,8 +1,9 @@
 use super::{Authorization, Error, JsonResponse};
-use crate::{auth::generate_id, get_pool, ratelimit};
+use crate::{auth::generate_id, get_pool, RatelimitLayer};
 
 use argon2_async::{hash, verify};
 use axum::{
+    error_handling::HandleErrorLayer,
     extract::{Json, Path, Query},
     handler::Handler,
     http::StatusCode,
@@ -11,6 +12,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
+use tower::{buffer::BufferLayer, ServiceBuilder};
 
 #[derive(Copy, Clone, Debug, Default, Deserialize_repr, Serialize_repr, PartialEq, Eq, Hash)]
 #[repr(u8)]
@@ -310,8 +312,24 @@ pub async fn post_paste(
     Ok(JsonResponse::ok(PasteResponse { id }))
 }
 
+macro_rules! ratelimit {
+    ($rate:expr, $per:expr) => {{
+        ServiceBuilder::new()
+            .layer(HandleErrorLayer::new(|e| async move {
+                JsonResponse(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Error {
+                        message: format!("Internal error: {}", e),
+                    },
+                )
+            }))
+            .layer(BufferLayer::new(1024))
+            .layer(RatelimitLayer($rate, $per))
+    }};
+}
+
 pub fn router() -> Router {
     Router::new()
-        .route("/pastes/:id", get(get_paste.layer(ratelimit(10, 15))))
-        .route("/pastes", post(post_paste.layer(ratelimit(2, 5))))
+        .route("/pastes/:id", get(get_paste.layer(ratelimit!(10, 15))))
+        .route("/pastes", post(post_paste.layer(ratelimit!(2, 5))))
 }

@@ -13,11 +13,12 @@ pub mod routes;
 
 use axum::{http::StatusCode, routing::get, Router};
 use std::net::SocketAddr;
+use tower_http::cors::CorsLayer;
 
 pub use cache::{get_cache, get_cache_mut};
 pub use config::get_config;
 pub use database::get_pool;
-pub use ratelimit::ratelimit;
+pub use ratelimit::RatelimitLayer;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -28,7 +29,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let router = Router::new()
         .route("/api", get(|| async { (StatusCode::OK, "Hello, world!") }))
         .nest("/api", routes::pastes::router())
-        .nest("/api", routes::users::router());
+        .nest("/api", routes::users::router())
+        .route_layer(CorsLayer::permissive());
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8081));
     let server = axum::Server::bind(&addr)

@@ -1,18 +1,21 @@
 use super::{Authorization, Error, JsonResponse};
 use crate::{
     auth::{generate_id, generate_token},
-    get_pool,
+    get_pool, RatelimitLayer,
 };
 
 use argon2_async::{hash, verify};
 use axum::{
+    error_handling::HandleErrorLayer,
     extract::{Json, Path},
+    handler::Handler,
     http::StatusCode,
     routing::{get, post},
     Router,
 };
 use check_if_email_exists::{check_email, CheckEmailInput, Reachable};
 use serde::{Deserialize, Serialize};
+use tower::{buffer::BufferLayer, ServiceBuilder};
 
 #[derive(Clone, Serialize)]
 pub struct User {
@@ -79,7 +82,7 @@ pub async fn get_user(
 /// TODO: GitHub logins
 ///
 /// # Limits
-/// - 1 successful request per 20 seconds
+/// - 5 requests per 30 seconds
 /// - Username between 3 to 32 characters and unique
 /// - Password between 6 and 128 characters
 /// - Email must be unique and valid
@@ -243,9 +246,25 @@ pub async fn login(
     Ok(JsonResponse::ok(LoginResponse { id, token }))
 }
 
+macro_rules! ratelimit {
+    ($rate:expr, $per:expr) => {{
+        ServiceBuilder::new()
+            .layer(HandleErrorLayer::new(|e| async move {
+                JsonResponse(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Error {
+                        message: format!("Internal error: {}", e),
+                    },
+                )
+            }))
+            .layer(BufferLayer::new(1024))
+            .layer(RatelimitLayer($rate, $per))
+    }};
+}
+
 pub fn router() -> Router {
     Router::new()
-        .route("/users/:id", get(get_user))
-        .route("/users", post(create_user))
-        .route("/login", post(login))
+        .route("/users/:id", get(get_user.layer(ratelimit!(5, 5))))
+        .route("/users", post(create_user.layer(ratelimit!(5, 30))))
+        .route("/login", post(login.layer(ratelimit!(2, 8))))
 }
