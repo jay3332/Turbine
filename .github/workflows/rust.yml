@@ -14,7 +14,49 @@ defaults:
     working-directory: server
 
 jobs:
+  ensure-sqlx-data:
+    runs-on: ubuntu-latest
+    
+    env:
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgres"
+    
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+           - 5432:5432
+    
+    steps:
+      - uses: actions/checkout@v3
+    
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v1
+      
+      - name: Install sqlx-cli
+        run: cargo install sqlx-cli --no-default-features --features rustls,postgres
+      
+      - run: cargo sqlx prepare
+      
+      - name: Commit sqlx-data.json
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com'
+          git add .
+          git commit -m "Update sqlx-data.json"
+          git push
+      
+      - run: echo "::set-output name=OUTPUT::true"
+
   build:
+    if: steps.ensure-sqlx-data.outputs.OUTPUT == true
     runs-on: ubuntu-latest
 
     steps:
