@@ -52,11 +52,9 @@ jobs:
           git add .
           git commit -m "Update sqlx-data.json"
           git push
-      
-      - run: echo "::set-output name=OUTPUT::true"
 
   build:
-    if: steps.ensure-sqlx-data.outputs.OUTPUT == true
+    needs: ensure-sqlx-data
     runs-on: ubuntu-latest
 
     steps:
