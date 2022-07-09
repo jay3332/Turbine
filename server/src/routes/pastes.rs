@@ -40,6 +40,7 @@ impl From<u8> for PasteVisibility {
 pub struct File {
     filename: Option<String>,
     content: String,
+    language: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -165,6 +166,7 @@ pub async fn get_paste(
     .map(|record| File {
         filename: record.filename,
         content: record.content,
+        language: record.language,
     })
     .collect::<Vec<_>>();
 
@@ -231,7 +233,7 @@ pub async fn post_paste(
         ));
     }
 
-    for (i, File { filename, content }) in payload.files.iter().enumerate() {
+    for (i, File { filename, content, .. }) in payload.files.iter().enumerate() {
         if let Some(filename) = filename {
             if filename.chars().count() > 64 {
                 return Err(JsonResponse(
@@ -282,30 +284,24 @@ pub async fn post_paste(
     .execute(db)
     .await?;
 
+    let (filenames, (content, languages)) = payload.files
+        .into_iter()
+        .map(|file| (file.filename, (file.content, file.language)))
+        .unzip::<_, _, Vec<_>, (Vec<_>, Vec<_>)>();
+
     sqlx::query(
         "
         INSERT INTO files
         SELECT $1, out.*
-        FROM UNNEST($2, $3, $4)
-        AS out(idx, filename, content)
+        FROM UNNEST($2, $3, $4, $5)
+        AS out(idx, filename, content, languages)
     ",
     )
     .bind(id.clone())
-    .bind((0..payload.files.len() as i16).collect::<Vec<_>>())
-    .bind(
-        payload
-            .files
-            .iter()
-            .map(|file| file.filename.clone())
-            .collect::<Vec<_>>(),
-    )
-    .bind(
-        payload
-            .files
-            .into_iter()
-            .map(|file| file.content)
-            .collect::<Vec<_>>(),
-    )
+    .bind((0..filenames.len() as i16).collect::<Vec<_>>())
+    .bind(filenames)
+    .bind(content)
+    .bind(languages)
     .execute(db)
     .await?;
 
