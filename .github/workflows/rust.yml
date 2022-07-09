@@ -36,4 +36,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: debug-build
-        path: target/debug/turbine-server
+        path: server/target/debug/turbine-server
