@@ -54,6 +54,7 @@ export interface PasteInterfaceProps {
 export interface EditorOptions {
   tabSize: number;
   useSoftTabs: boolean;
+  wrap: 0 | 1 | 2;
 }
 
 const Container = styled.div`
@@ -212,6 +213,48 @@ const ArrowImage = styled(Image)`
   }
 `;
 
+const SoftTabsButton = styled.button<{ isSoft: boolean }>`
+  font-weight: 600;
+  background-color: ${props => props.isSoft ? 'var(--color-primary)' : 'var(--color-secondary)'};
+  transition: all 0.3s ease;
+  margin-left: 6px;
+  font-size: 14px;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  
+  &:active {
+    opacity: 0.83;
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+  }
+`;
+
+const WrapButton = styled.button<{ setting: 0 | 1 | 2 }>`
+  font-weight: 600;
+  background-color: ${props => [
+    'var(--color-primary)',
+    'var(--color-success-blend)',
+    'var(--color-bg-3)',
+  ][props.setting]};
+  transition: all 0.3s ease;
+  margin-left: 6px;
+  font-size: 14px;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  
+  &:active {
+    opacity: 0.83;
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+  }
+`;
+
 const LoadingAnimation = styled.div`
   width: 22px;
   height: 22px;
@@ -336,6 +379,9 @@ export function Editor({ filename, language, value, onFocus, onBlur, onChange, o
         cursorStyle: 'smooth',
         useSoftTabs: options.useSoftTabs,
         tabSize: options.tabSize,
+        wrap: options.wrap === 0
+          ? undefined
+          : options.wrap === 1,
         minLines: 10,
         maxLines: Infinity,
       }}
@@ -347,6 +393,7 @@ export function Editor({ filename, language, value, onFocus, onBlur, onChange, o
 const defaultEditorOptions: EditorOptions = {
   tabSize: 4,
   useSoftTabs: true,
+  wrap: 0,
 }
 
 export default function PasteInterface({ callback, data }: PasteInterfaceProps) {
@@ -418,6 +465,26 @@ export default function PasteInterface({ callback, data }: PasteInterfaceProps) 
                       files[i].options.tabSize = parseInt(e.target.value);
                     }}
                   />
+                  <SoftTabsButton isSoft={options.useSoftTabs} onClick={() => {
+                    let f = [...files];
+
+                    f[i].options.useSoftTabs = !options.useSoftTabs;
+                    setFiles(f);
+                  }}>
+                    {options.useSoftTabs ? 'Using Soft Tabs' : 'Using Hard Tabs'}
+                  </SoftTabsButton>
+                  <WrapButton setting={options.wrap} onClick={() => {
+                    let f = [...files];
+
+                    f[i].options.wrap = (++options.wrap % 3) as (0 | 1 | 2);
+                    setFiles(f);
+                  }}>
+                    {[
+                      'Wrap: Auto',
+                      'Wrap: On',
+                      'Wrap: Off',
+                    ][options.wrap]}
+                  </WrapButton>
                 </FileConfigRow>
               )}
             </FileConfig>
