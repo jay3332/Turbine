@@ -262,6 +262,11 @@
           "ordinal": 3,
           "name": "content",
           "type_info": "Text"
+        },
+        {
+          "ordinal": 4,
+          "name": "language",
+          "type_info": "Text"
         }
       ],
       "parameters": {
@@ -273,7 +278,8 @@
         false,
         false,
         true,
-        false
+        false,
+        true
       ]
     }
   }
