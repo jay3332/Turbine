@@ -86,6 +86,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             extensions.retain(|ext| ext != ".ts" && ext != ".tsx");
         }
 
+        // Special case: prioritize .md for Markdown instead of GCC Machine Description
+        else if name == "GCC Machine Description" {
+            continue;
+        }
+
         // Special case: use the TSX ace mode instead of the default JavaScript
         else if name == "TSX" {
             ace_mode = "tsx".to_string();
