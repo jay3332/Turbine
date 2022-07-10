@@ -2,8 +2,10 @@ import dynamic from "next/dynamic";
 import Image from 'next/future/image';
 import styled from 'styled-components'
 import { type FormEvent, useEffect, useState } from "react";
-import languages from "../public/languages.json"
 
+import Modal from './Modal';
+import SearchBar from './SearchBar';
+import languages from "../public/languages.json"
 import AngleDownIcon from '../public/icon-angle-down.svg'
 import AngleRightIcon from '../public/icon-angle-right.svg'
 
@@ -31,6 +33,7 @@ export interface InboundPasteData {
   files: {
     filename: string,
     content: string,
+    language?: string,
   }[];
   author_id: string,
   author_name: string,
@@ -43,6 +46,7 @@ export interface OutboundPasteData {
   files: {
     filename: string,
     content: string,
+    language?: string,
   }[];
 }
 
@@ -124,6 +128,10 @@ const File = styled.div<{ focused: boolean }>`
 const FileHeader = styled.div`
   padding: 6px;
   display: flex;
+  
+  @media screen and (max-width: 767px) {
+    padding-bottom: 0;
+  }
 `;
 
 const FileConfig = styled.div`
@@ -160,6 +168,15 @@ const FileConfigRow = styled.div`
   width: 100%;
   margin-top: 6px;
   align-items: center;
+  
+  @media screen and (max-width: 767px) {
+    flex-wrap: wrap;
+    
+    * {
+      margin-bottom: 6px;
+      white-space: nowrap;
+    }
+  }
 `;
 
 const FileConfigLabel = styled.label`
@@ -178,6 +195,7 @@ const TabSizeInput = styled.input`
   background-color: var(--color-bg-2);
   border-radius: 4px;
   transition: all 0.4s ease;
+  margin-right: 6px;
   
   &:focus {
     border: var(--color-primary) 2px solid;
@@ -217,11 +235,12 @@ const SoftTabsButton = styled.button<{ isSoft: boolean }>`
   font-weight: 600;
   background-color: ${props => props.isSoft ? 'var(--color-primary)' : 'var(--color-secondary)'};
   transition: all 0.3s ease;
-  margin-left: 6px;
+  margin-right: 6px;
   font-size: 14px;
   padding: 6px;
   border-radius: 6px;
   cursor: pointer;
+  border: none;
   
   &:active {
     opacity: 0.83;
@@ -240,11 +259,31 @@ const WrapButton = styled.button<{ setting: 0 | 1 | 2 }>`
     'var(--color-bg-3)',
   ][props.setting]};
   transition: all 0.3s ease;
-  margin-left: 6px;
+  font-size: 14px;
+  padding: 6px;
+  margin-right: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  
+  &:active {
+    opacity: 0.83;
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+  }
+`;
+
+const LanguageSelect = styled.button`
+  font-weight: 600;
+  background-color: var(--color-bg-3);
+  transition: all 0.3s ease;
   font-size: 14px;
   padding: 6px;
   border-radius: 6px;
   cursor: pointer;
+  border: none;
   
   &:active {
     opacity: 0.83;
@@ -291,6 +330,74 @@ const LoadingText = styled.div`
   font-weight: 600;
   opacity: 0.8;
   user-select: none;
+`;
+
+const LanguageSearchHeader = styled.div`
+  font-size: 24px;
+  font-weight: 600;
+  opacity: 0.8;
+  user-select: none;
+  margin-bottom: 18px;
+  text-align: center;
+`;
+
+const LanguageSearchBar = styled(SearchBar)`
+  width: min(75vw, 600px);
+  box-sizing: border-box;
+`;
+
+const LanguageEntries = styled.div`
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  scroll-behavior: smooth;
+  margin-top: 6px;
+  overflow-y: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  
+  ::-webkit-scrollbar {
+    display: none;
+  }
+`;
+
+const LanguageEntry = styled.button`
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background-color: var(--color-bg-0);
+  border: var(--color-bg-0) 2px solid;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  
+  &:hover {
+    border: var(--color-primary) 2px solid;
+  }
+  
+  &:focus {
+    outline: none;
+    border: var(--color-primary) 2px solid;
+  }
+`;
+
+const LanguageEntryColor = styled.div<{ color: string }>`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: ${props => props.color};
+`;
+
+const LanguageEntryText = styled.div`
+  font-size: 16px;
+  font-weight: 600;
+  opacity: 0.8;
+  user-select: none;
+  margin-left: 6px;
 `;
 
 export interface EditorProps {
@@ -374,7 +481,6 @@ export function Editor({ filename, language, value, onFocus, onBlur, onChange, o
         enableSnippets: true,
         enableBasicAutocompletion: true,
         enableLiveAutocompletion: true,
-        enableEmmet: true,
         showLineNumbers: true,
         cursorStyle: 'smooth',
         useSoftTabs: options.useSoftTabs,
@@ -413,101 +519,170 @@ export default function PasteInterface({ callback, data }: PasteInterfaceProps) 
 
   const [ files, setFiles ] = useState(initialState)
   const [ focused, setFocused ] = useState<number>()
+  const [ languageModalIndex, setLanguageModalIndex ] = useState<number>()
+  const [ languageQuery, setLanguageQuery ] = useState<string>()
+
+  useEffect(() => {
+    setLanguageQuery(undefined);
+  }, [languageModalIndex]);
 
   return (
-    <Container>
-      <Title defaultValue={data?.title || 'Untitled Paste'} maxLength={64} onChange={e => setTitle(e.target.value)} />
-      <Description
-        placeholder="Enter a description..."
-        maxLength={1024}
-        onChange={e => {setDescription(e.target.value)}}
-        onInput={({ target }: { target: HTMLElement } & FormEvent<HTMLTextAreaElement>) => {
-          target.style.height = ''; // This makes the scrollbar not "flash" when it overflows
-          target.style.height = target.scrollHeight + 6 + "px"
+    <>
+      <Modal
+        isOpen={languageModalIndex != null}
+        onRequestClose={() => {
+          setLanguageModalIndex(undefined);
         }}
-      />
-      {files.map(({ filename, content, expanded, options }, i) => (
-        <File focused={i === focused} key={`file:${i}`}>
-          <FileHeader>
-            <ArrowImage
-              src={expanded ? AngleDownIcon : AngleRightIcon}
-              alt="Expand"
-              // Boilerplate due to how useState works
-              onClick={() => {
-                let f = [...files];
-                f[i].expanded = !expanded;
-                if (focused === i) {
-                  setFocused(undefined);
-                }
-                setFiles(f);
-              }}
-            />
-            <FileConfig>
-              <FilenameInput placeholder="Enter filename..." defaultValue={filename} onChange={e => {
-                files[i].filename = e.target.value;
-                setFiles(files);
-              }} />
-              {expanded && (
-                <FileConfigRow>
-                  <FileConfigLabel>
-                    Tab Size
-                  </FileConfigLabel>
-                  <TabSizeInput
-                    type="number"
-                    min={1}
-                    max={8}
-                    maxLength={1}
-                    defaultValue={options.tabSize}
-                    step={1}
-                    onChange={e => {
-                      // @ts-ignore
-                      e.target.value = Math.max(1, Math.min(8, e.target.value.at(-1) ?? 4));
-                      files[i].options.tabSize = parseInt(e.target.value);
-                    }}
-                  />
-                  <SoftTabsButton isSoft={options.useSoftTabs} onClick={() => {
-                    let f = [...files];
+      >
+        <LanguageSearchHeader>Choose a Language</LanguageSearchHeader>
+        <LanguageSearchBar
+          placeholder="Search for a language..."
+          onInput={(e) => {
+            // @ts-ignore
+            setLanguageQuery(e.target.value.toLowerCase());
+          }}
+        />
+        <LanguageEntries>
+          {(languageQuery == null || "auto".includes(languageQuery)) && (
+            <LanguageEntry
+            key="Auto"
+            onClick={() => {
+              let f = [...files];
+              f[languageModalIndex!]!.language = undefined;
 
-                    f[i].options.useSoftTabs = !options.useSoftTabs;
-                    setFiles(f);
-                  }}>
-                    {options.useSoftTabs ? 'Using Soft Tabs' : 'Using Hard Tabs'}
-                  </SoftTabsButton>
-                  <WrapButton setting={options.wrap} onClick={() => {
-                    let f = [...files];
-
-                    f[i].options.wrap = (++options.wrap % 3) as (0 | 1 | 2);
-                    setFiles(f);
-                  }}>
-                    {[
-                      'Wrap: Auto',
-                      'Wrap: On',
-                      'Wrap: Off',
-                    ][options.wrap]}
-                  </WrapButton>
-                </FileConfigRow>
-              )}
-            </FileConfig>
-          </FileHeader>
-          {expanded && (
-            <Editor
-              value={content}
-              filename={filename}
-              onFocus={() => setFocused(i)}
-              onBlur={() => {
-                if (focused === i) {
-                  setFocused(undefined);
-                }
-              }}
-              onChange={value => {
-                files[i].content = value;
-                setFiles(files);
-              }}
-              options={options}
-            />
+              setFiles(f);
+              setLanguageModalIndex(undefined);
+            }}
+          >
+              <LanguageEntryColor color="var(--color-text)"/>
+              <LanguageEntryText>Auto</LanguageEntryText>
+            </LanguageEntry>
           )}
-        </File>
-      ))}
-    </Container>
+          {Object.entries(languages)
+            .sort(([a, _a], [b, _b]) => a.charCodeAt(0) - b.charCodeAt(0))
+            .filter(([name, { extensions }]) => {
+              return languageQuery == null
+                || name.toLowerCase().includes(languageQuery)
+                || extensions.some(ext => ext.toLowerCase().includes(languageQuery));
+            })
+            .map(([lang, details]) => (
+              <LanguageEntry
+                key={lang}
+                onClick={() => {
+                  let f = [...files];
+                  f[languageModalIndex!]!.language = lang;
+
+                  setFiles(f);
+                  setLanguageModalIndex(undefined);
+                }}
+              >
+                <LanguageEntryColor color={details.color ?? 'var(--color-text)'} />
+                <LanguageEntryText>{lang}</LanguageEntryText>
+              </LanguageEntry>
+            ))
+          }
+        </LanguageEntries>
+      </Modal>
+      <Container>
+        <Title defaultValue={data?.title || 'Untitled Paste'} maxLength={64} onChange={e => setTitle(e.target.value)} />
+        <Description
+          placeholder="Enter a description..."
+          maxLength={1024}
+          onChange={e => {setDescription(e.target.value)}}
+          onInput={({ target }: { target: HTMLElement } & FormEvent<HTMLTextAreaElement>) => {
+            target.style.height = ''; // This makes the scrollbar not "flash" when it overflows
+            target.style.height = target.scrollHeight + 6 + "px"
+          }}
+        />
+        {files.map(({ filename, content, language, expanded, options }, i) => (
+          <File focused={i === focused} key={`file:${i}`}>
+            <FileHeader>
+              <ArrowImage
+                src={expanded ? AngleDownIcon : AngleRightIcon}
+                alt="Expand"
+                // Boilerplate due to how useState works
+                onClick={() => {
+                  let f = [...files];
+                  f[i].expanded = !expanded;
+                  if (focused === i) {
+                    setFocused(undefined);
+                  }
+                  setFiles(f);
+                }}
+              />
+              <FileConfig>
+                <FilenameInput placeholder="Enter filename..." defaultValue={filename} onChange={e => {
+                  files[i].filename = e.target.value;
+                  setFiles(files);
+                }} />
+                {expanded && (
+                  <FileConfigRow>
+                    <FileConfigLabel>
+                      Tab Size
+                    </FileConfigLabel>
+                    <TabSizeInput
+                      type="number"
+                      min={1}
+                      max={8}
+                      maxLength={1}
+                      defaultValue={options.tabSize}
+                      step={1}
+                      onChange={e => {
+                        // @ts-ignore
+                        e.target.value = Math.max(1, Math.min(8, e.target.value.at(-1) ?? 4));
+                        files[i].options.tabSize = parseInt(e.target.value);
+                      }}
+                    />
+                    <SoftTabsButton isSoft={options.useSoftTabs} onClick={() => {
+                      let f = [...files];
+
+                      f[i].options.useSoftTabs = !options.useSoftTabs;
+                      setFiles(f);
+                    }}>
+                      {options.useSoftTabs ? 'Using Soft Tabs' : 'Using Hard Tabs'}
+                    </SoftTabsButton>
+                    <WrapButton setting={options.wrap} onClick={() => {
+                      let f = [...files];
+
+                      f[i].options.wrap = (++options.wrap % 3) as (0 | 1 | 2);
+                      setFiles(f);
+                    }}>
+                      {[
+                        'Wrap: Auto',
+                        'Wrap: On',
+                        'Wrap: Off',
+                      ][options.wrap]}
+                    </WrapButton>
+                    <LanguageSelect onClick={() => {
+                      setLanguageModalIndex(i);
+                    }}>
+                      Language: {language ?? 'Auto'}
+                    </LanguageSelect>
+                  </FileConfigRow>
+                )}
+              </FileConfig>
+            </FileHeader>
+            {expanded && (
+              <Editor
+                value={content}
+                filename={filename}
+                language={language}
+                onFocus={() => setFocused(i)}
+                onBlur={() => {
+                  if (focused === i) {
+                    setFocused(undefined);
+                  }
+                }}
+                onChange={value => {
+                  files[i].content = value;
+                  setFiles(files);
+                }}
+                options={options}
+              />
+            )}
+          </File>
+        ))}
+      </Container>
+    </>
   )
 }

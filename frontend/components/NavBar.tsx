@@ -2,7 +2,7 @@ import Image from 'next/future/image';
 import Link from 'next/link';
 import styled from 'styled-components';
 
-import useMediaQuery from "../hooks/media_query";
+import useMediaQuery from "../hooks/useMediaQuery";
 import TurbineLogo from '../public/turbine_logo.png';
 import TurbineBanner from '../public/turbine_banner_adjusted.png';
 

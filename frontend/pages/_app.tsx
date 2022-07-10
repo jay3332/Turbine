@@ -2,6 +2,8 @@ import { createGlobalStyle } from 'styled-components';
 import type { AppProps } from 'next/app'
 import NavBar from "../components/NavBar";
 import Head from "next/head";
+import Modal from "react-modal";
+import {useEffect} from "react";
 
 const GlobalStyle = createGlobalStyle`
   :root {
@@ -102,9 +104,48 @@ const GlobalStyle = createGlobalStyle`
       border: none;
     }
   }
+  
+  .ReactModal__Content {
+    top: 50% !important;
+    left: 50% !important;
+    right: initial !important;
+    bottom: initial !important;
+    margin-right: -50%;
+    transform: translate(-50%, -50%);
+    border-radius: 6px !important;
+    padding: 32px !important;
+    background-color: var(--color-bg-1) !important;
+    z-index: 1000001 !important;
+    border: none !important;
+    display: flex;
+    flex-direction: column;
+    max-width: 75vw;
+    max-height: 75vh;
+    overflow-y: auto;
+  }
+  
+  .ReactModal__Overlay {
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+    z-index: 1000000 !important;
+  }
+  
+  .ReactModal__Overlay--after-open {
+    opacity: 1;
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(3px);
+  }
+  
+  .ReactModal__Overlay--before-close {
+    opacity: 0;
+  }
 `;
 
 export default function App({ Component, pageProps }: AppProps) {
+  useEffect(() => {
+    Modal.setAppElement('#__next');
+  }, []);
+
   return (
       <>
         <GlobalStyle />
