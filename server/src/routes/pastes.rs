@@ -52,6 +52,9 @@ pub struct Paste {
     pub description: Option<String>,
     pub visibility: PasteVisibility,
     pub files: Vec<File>,
+    pub created_at: i64,
+    pub views: u32,
+    pub stars: u32,
 }
 
 #[derive(Debug, Deserialize)]
@@ -86,7 +89,8 @@ pub async fn get_paste(
         r#"
         SELECT
             pastes.*,
-            u.username AS "username?"
+            u.username AS "username?",
+            (SELECT COUNT(*) FROM stars WHERE paste_id = pastes.id) AS stars
         FROM
             pastes
         LEFT JOIN LATERAL (
@@ -107,6 +111,11 @@ pub async fn get_paste(
             },
         )
     })?;
+
+    let views = sqlx::query!("UPDATE pastes SET views = views + 1 RETURNING views")
+        .fetch_one(db)
+        .await?
+        .views;
 
     if paste.visibility == 0 && auth.is_none() {
         return Err(JsonResponse(
@@ -178,6 +187,9 @@ pub async fn get_paste(
         description: paste.description,
         visibility: PasteVisibility::from(paste.visibility as u8),
         files,
+        created_at: paste.created_at.timestamp(),
+        stars: paste.stars.unwrap_or(0) as u32,
+        views: views as u32,
     }))
 }
 
@@ -233,19 +245,31 @@ pub async fn post_paste(
         ));
     }
 
-    for (i, File { filename, content, .. }) in payload.files.iter().enumerate() {
-        if let Some(filename) = filename {
-            if filename.chars().count() > 64 {
-                return Err(JsonResponse(
-                    StatusCode::BAD_REQUEST,
-                    Error {
-                        message: format!(
-                            "The filename of the file at index {} (0-indexed) has a length of {}, which surpasses the maximum of 64",
-                            i,
-                            filename.chars().count(),
-                        )
-                    }
-                ));
+    for (
+        i,
+        File {
+            filename,
+            content,
+            language,
+        },
+    ) in payload.files.iter().enumerate()
+    {
+        for (name, entity, max_len) in [("filename", filename, 64), ("language", language, 32)] {
+            if let Some(entity) = entity {
+                if entity.chars().count() > max_len {
+                    return Err(JsonResponse(
+                        StatusCode::BAD_REQUEST,
+                        Error {
+                            message: format!(
+                                "The {} of the file at index {} (0-indexed) has a length of {}, which surpasses the maximum of {}",
+                                name,
+                                i,
+                                entity.chars().count(),
+                                max_len,
+                            )
+                        }
+                    ));
+                }
             }
         }
 
@@ -284,7 +308,8 @@ pub async fn post_paste(
     .execute(db)
     .await?;
 
-    let (filenames, (content, languages)) = payload.files
+    let (filenames, (content, languages)) = payload
+        .files
         .into_iter()
         .map(|file| (file.filename, (file.content, file.language)))
         .unzip::<_, _, Vec<_>, (Vec<_>, Vec<_>)>();

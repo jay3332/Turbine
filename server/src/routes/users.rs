@@ -14,8 +14,11 @@ use axum::{
     Router,
 };
 use check_if_email_exists::{check_email, CheckEmailInput, Reachable};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tower::{buffer::BufferLayer, ServiceBuilder};
+
+pub type Timestamp = DateTime<Utc>;
 
 #[derive(Clone, Serialize)]
 pub struct User {
@@ -23,6 +26,7 @@ pub struct User {
     pub username: String,
     // Email will only be returned if this is the current user
     pub email: Option<String>,
+    pub created_at: i64,
 }
 
 #[derive(Clone, Deserialize)]
@@ -55,17 +59,20 @@ pub async fn get_user(
     auth: Option<Authorization>,
     Path(id): Path<String>,
 ) -> Result<JsonResponse<User>, JsonResponse<Error>> {
-    let user = sqlx::query!("SELECT username, email FROM users WHERE id = $1", id)
-        .fetch_optional(get_pool())
-        .await?
-        .ok_or_else(|| {
-            (
-                StatusCode::NOT_FOUND,
-                Error {
-                    message: "User with that ID not found".to_string(),
-                },
-            )
-        })?;
+    let user = sqlx::query!(
+        "SELECT username, email, created_at FROM users WHERE id = $1",
+        id
+    )
+    .fetch_optional(get_pool())
+    .await?
+    .ok_or_else(|| {
+        (
+            StatusCode::NOT_FOUND,
+            Error {
+                message: "User with that ID not found".to_string(),
+            },
+        )
+    })?;
 
     Ok(JsonResponse::ok(User {
         id: id.clone(),
@@ -75,6 +82,7 @@ pub async fn get_user(
             auth.is_some_and(|user_id| id == user_id.0)
                 .then(|| user.email),
         ),
+        created_at: user.created_at.timestamp(),
     }))
 }
 
@@ -245,6 +253,8 @@ pub async fn login(
 
     Ok(JsonResponse::ok(LoginResponse { id, token }))
 }
+
+// TODO: GET /stars, PUT /stars/:id
 
 macro_rules! ratelimit {
     ($rate:expr, $per:expr) => {{

@@ -11,12 +11,13 @@ argon2-async = "0.2.0"
 axum = { version = "0.5.10", features = ["headers", "ws"] }
 base64 = "0.13.0"
 check-if-email-exists = "0.8"
+chrono = "0.4.19"
 forwarded-header-value = "0.1"
 rand = "0.8.5"
 ring = "0.16.20"
 serde = "1.0.137"
 serde_repr = "0.1.8"
-sqlx = { version = "0.6.0", features = ["postgres", "macros", "offline", "runtime-tokio-rustls", "time"] }
+sqlx = { version = "0.6.0", features = ["chrono", "postgres", "macros", "offline", "runtime-tokio-rustls", "time"] }
 tokio = { version = "1.19.2", features = ["full"] }
 toml = "0.5.9"
 tower = { version = "0.4.13", features = ["buffer"] }
