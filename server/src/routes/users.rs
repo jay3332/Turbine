@@ -1,6 +1,7 @@
 use super::{Authorization, Error, JsonResponse};
 use crate::{
     auth::{generate_id, generate_token},
+    routes::pastes::{File, PastePreview, PasteVisibility},
     get_pool, RatelimitLayer,
 };
 
@@ -10,7 +11,7 @@ use axum::{
     extract::{Json, Path},
     handler::Handler,
     http::StatusCode,
-    routing::{get, post},
+    routing::{get, post, put},
     Router,
 };
 use check_if_email_exists::{check_email, CheckEmailInput, Reachable};
@@ -52,6 +53,12 @@ pub struct LoginPayload {
 pub struct LoginResponse {
     pub id: String,
     pub token: String,
+}
+
+#[derive(Clone, Serialize)]
+pub struct PutStarResponse {
+    pub stars: u32,
+    pub deleted: bool,
 }
 
 /// GET /users/:id
@@ -178,7 +185,7 @@ pub async fn create_user(
     .execute(db)
     .await?;
 
-    Ok(JsonResponse::ok(UserCreateResponse { id }))
+    Ok(JsonResponse(StatusCode::CREATED, UserCreateResponse { id }))
 }
 
 /// POST /login
@@ -254,7 +261,105 @@ pub async fn login(
     Ok(JsonResponse::ok(LoginResponse { id, token }))
 }
 
-// TODO: GET /stars, PUT /stars/:id
+pub async fn list_stars(
+    Authorization(user_id): Authorization,
+) -> Result<JsonResponse<Vec<PastePreview>>, JsonResponse<Error>> {
+    let db = get_pool();
+
+    let stars = sqlx::query!(r#"
+        SELECT
+            pastes.*,
+            u.username AS "username?",
+            f.filename AS "filename?",
+            f.content AS "content!",
+            f.language AS "language?",
+            (SELECT COUNT(*) FROM stars WHERE paste_id = pastes.id) AS stars
+        FROM
+            pastes
+        LEFT JOIN LATERAL (
+            SELECT username FROM users WHERE users.id = pastes.author_id
+        ) AS u ON username IS NOT NULL
+        LEFT JOIN LATERAL (
+            SELECT * FROM files WHERE files.paste_id = pastes.id AND files.idx = 0
+        ) AS f ON true
+        WHERE
+            id
+        IN (SELECT paste_id FROM stars WHERE user_id = $1)
+        "#,
+        user_id,
+    )
+    .fetch_all(db)
+    .await?;
+
+    Ok(JsonResponse::ok(stars.into_iter().map(|paste| PastePreview {
+        id: paste.id,
+        name: paste.name,
+        description: paste.description,
+        author_id: paste.author_id,
+        author_name: paste.username,
+        created_at: paste.created_at.timestamp(),
+        visibility: PasteVisibility::from(paste.visibility as u8),
+        stars: paste.stars.unwrap_or(0) as u32,
+        views: paste.views as u32,
+        first_file: File {
+            filename: paste.filename,
+            content: paste.content,
+            language: paste.language,
+        },
+    }).collect()))
+}
+
+pub async fn put_star(
+    Authorization(user_id): Authorization,
+    Path(paste_id): Path<String>,
+) -> Result<JsonResponse<PutStarResponse>, JsonResponse<Error>> {
+    let db = get_pool();
+    let mut transaction = db.begin().await?;
+
+    let initial_stars = sqlx::query!(
+        "SELECT COUNT(*) AS count FROM stars WHERE paste_id = $1",
+        paste_id,
+    )
+    .fetch_optional(&mut transaction)
+    .await?
+    .ok_or_else(|| {
+        (
+            StatusCode::NOT_FOUND,
+            Error {
+                message: "Paste not found".to_string(),
+            },
+        )
+    })?
+    .count
+    .unwrap_or(0);
+
+    let rows_affected = sqlx::query!(
+        "INSERT INTO stars VALUES ($1, $2) ON CONFLICT DO NOTHING",
+        user_id,
+        paste_id,
+    )
+    .execute(&mut transaction)
+    .await?
+    .rows_affected();
+
+    if rows_affected == 0 {
+        let deleted = sqlx::query!(
+            "DELETE FROM stars WHERE user_id = $1 AND paste_id = $2",
+            user_id,
+            paste_id,
+        )
+        .execute(&mut transaction)
+        .await?
+        .rows_affected();
+
+        assert_eq!(deleted, 1);
+    }
+
+    Ok(JsonResponse::ok(PutStarResponse {
+        stars: initial_stars as u32,
+        deleted: rows_affected == 0,
+    }))
+}
 
 macro_rules! ratelimit {
     ($rate:expr, $per:expr) => {{
@@ -276,5 +381,7 @@ pub fn router() -> Router {
     Router::new()
         .route("/users/:id", get(get_user.layer(ratelimit!(5, 5))))
         .route("/users", post(create_user.layer(ratelimit!(5, 30))))
+        .route("/stars/:id", put(put_star.layer(ratelimit!(5, 7))))
+        .route("/stars", get(list_stars.layer(ratelimit!(5, 5))))
         .route("/login", post(login.layer(ratelimit!(2, 8))))
 }

@@ -38,9 +38,9 @@ impl From<u8> for PasteVisibility {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct File {
-    filename: Option<String>,
-    content: String,
-    language: Option<String>,
+    pub filename: Option<String>,
+    pub content: String,
+    pub language: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -52,6 +52,20 @@ pub struct Paste {
     pub description: Option<String>,
     pub visibility: PasteVisibility,
     pub files: Vec<File>,
+    pub created_at: i64,
+    pub views: u32,
+    pub stars: u32,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PastePreview {
+    pub id: String,
+    pub author_id: Option<String>,
+    pub author_name: Option<String>,
+    pub name: String,
+    pub description: Option<String>,
+    pub visibility: PasteVisibility,
+    pub first_file: File,
     pub created_at: i64,
     pub views: u32,
     pub stars: u32,
@@ -289,6 +303,7 @@ pub async fn post_paste(
 
     let id = generate_id::<12>();
     let db = get_pool();
+    let mut transaction = db.begin().await?;
 
     let password = if let Some(password) = payload.password {
         Some(hash(password).await?)
@@ -305,7 +320,7 @@ pub async fn post_paste(
         payload.visibility as i16,
         password,
     )
-    .execute(db)
+    .execute(&mut transaction)
     .await?;
 
     let (filenames, (content, languages)) = payload
@@ -327,10 +342,10 @@ pub async fn post_paste(
     .bind(filenames)
     .bind(content)
     .bind(languages)
-    .execute(db)
+    .execute(&mut transaction)
     .await?;
 
-    Ok(JsonResponse::ok(PasteResponse { id }))
+    Ok(JsonResponse(StatusCode::CREATED, PasteResponse { id }))
 }
 
 macro_rules! ratelimit {
