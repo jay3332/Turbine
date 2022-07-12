@@ -40,6 +40,112 @@
     },
     "query": "SELECT id FROM users WHERE email = $1"
   },
+  "4677a9ff82aaa509e02b013727470967e6a71e850a2a28399c1321d5055c0f9f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "author_id",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "visibility",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "password",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "views",
+          "ordinal": 6,
+          "type_info": "Int4"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 7,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "username?",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "stars",
+          "ordinal": 9,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        SELECT\n            pastes.*,\n            u.username AS \"username?\",\n            (SELECT COUNT(*) FROM stars WHERE paste_id = pastes.id) AS stars\n        FROM\n            pastes\n        LEFT JOIN LATERAL (\n            SELECT username FROM users WHERE users.id = pastes.author_id\n        ) AS u ON username IS NOT NULL\n        WHERE\n            id = $1\n    "
+  },
+  "5352ed0a258472751157a85b8f40d96ac3099dd96c54c4167cacc0e3539aba7e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "username",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "email",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 2,
+          "type_info": "Timestamptz"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT username, email, created_at FROM users WHERE id = $1"
+  },
   "53b42ad582c42123575242836dea5b16c68be148adccef132e6fb9cbff824f82": {
     "describe": {
       "columns": [],
@@ -52,6 +158,24 @@
       }
     },
     "query": "INSERT INTO tokens VALUES ($1, $2)"
+  },
+  "5cc5ce16b3c19bf25ce2efc14bbcadc757defba7df4e45f80939efff24628dcd": {
+    "describe": {
+      "columns": [
+        {
+          "name": "views",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "UPDATE pastes SET views = views + 1 RETURNING views"
   },
   "6b72a77f3cceef19ae665b115a21bb0fc5c3d6289c9b185705dd0bf54f6de2f2": {
     "describe": {
@@ -156,88 +280,6 @@
       }
     },
     "query": "SELECT id FROM users WHERE username = $1"
-  },
-  "e0834102fac06bfbac4e934fab5ee55e548d930ad8a72fbcf49124ec9ff44bcc": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "author_id",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "name",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "description",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "visibility",
-          "ordinal": 4,
-          "type_info": "Int2"
-        },
-        {
-          "name": "password",
-          "ordinal": 5,
-          "type_info": "Text"
-        },
-        {
-          "name": "username?",
-          "ordinal": 6,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        true,
-        false,
-        true,
-        false,
-        true,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "\n        SELECT\n            pastes.*,\n            u.username AS \"username?\"\n        FROM\n            pastes\n        LEFT JOIN LATERAL (\n            SELECT username FROM users WHERE users.id = pastes.author_id\n        ) AS u ON username IS NOT NULL\n        WHERE\n            id = $1\n    "
-  },
-  "ee13aee915382a5b5d745363e08c6367a49a2b4192e9cdcfd3fcafc16d85b64b": {
-    "describe": {
-      "columns": [
-        {
-          "name": "username",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "email",
-          "ordinal": 1,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        true
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "SELECT username, email FROM users WHERE id = $1"
   },
   "ff04920d95bdd46d50b8a0d95824669dcab961c43b09b2aabd89848ca1dbd2e9": {
     "describe": {
