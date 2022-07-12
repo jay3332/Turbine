@@ -24,6 +24,8 @@ struct RawEntry {
     filenames: Vec<String>,
     #[serde(default)]
     extensions: Vec<String>,
+    #[serde(default)]
+    wrap: bool,
     ace_mode: String,
 }
 
@@ -35,6 +37,7 @@ struct Entry {
     aliases: Vec<String>,
     filenames: Vec<String>,
     extensions: Vec<String>,
+    wrap: bool,
     ace_mode: String,
 }
 
@@ -78,12 +81,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             color,
             mut extensions,
             filenames,
+            wrap,
         },
     ) in data
     {
-        // Special case: remove extension .ts/.tsx to prioritize TypeScript/TSX language
+        // Special case: remove extension .ts/.tsx/.rs to prioritize TypeScript/TSX/Rust language
         if name == "XML" {
-            extensions.retain(|ext| ext != ".ts" && ext != ".tsx");
+            extensions.retain(|ext| ext != ".ts" && ext != ".tsx" && ext != ".rs");
         }
 
         // Special case: prioritize .md for Markdown instead of GCC Machine Description
@@ -117,6 +121,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 color,
                 extensions,
                 filenames,
+                wrap,
             },
         );
     }
