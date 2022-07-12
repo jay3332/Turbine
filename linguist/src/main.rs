@@ -89,17 +89,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if name == "XML" {
             extensions.retain(|ext| ext != ".ts" && ext != ".tsx" && ext != ".rs");
         }
-
         // Special case: prioritize .md for Markdown instead of GCC Machine Description
         else if name == "GCC Machine Description" {
             continue;
         }
-
         // Special case: use the TSX ace mode instead of the default JavaScript
         else if name == "TSX" {
             ace_mode = "tsx".to_string();
         }
-
         // Special case: use the Kotlin ace mode instead of text
         else if name == "Kotlin" {
             ace_mode = "kotlin".to_string();

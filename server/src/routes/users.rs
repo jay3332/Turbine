@@ -1,8 +1,9 @@
 use super::{Authorization, Error, JsonResponse};
 use crate::{
     auth::{generate_id, generate_token},
+    get_pool,
     routes::pastes::{File, PastePreview, PasteVisibility},
-    get_pool, RatelimitLayer,
+    RatelimitLayer,
 };
 
 use argon2_async::{hash, verify};
@@ -266,7 +267,8 @@ pub async fn list_stars(
 ) -> Result<JsonResponse<Vec<PastePreview>>, JsonResponse<Error>> {
     let db = get_pool();
 
-    let stars = sqlx::query!(r#"
+    let stars = sqlx::query!(
+        r#"
         SELECT
             pastes.*,
             u.username AS "username?",
@@ -291,22 +293,27 @@ pub async fn list_stars(
     .fetch_all(db)
     .await?;
 
-    Ok(JsonResponse::ok(stars.into_iter().map(|paste| PastePreview {
-        id: paste.id,
-        name: paste.name,
-        description: paste.description,
-        author_id: paste.author_id,
-        author_name: paste.username,
-        created_at: paste.created_at.timestamp(),
-        visibility: PasteVisibility::from(paste.visibility as u8),
-        stars: paste.stars.unwrap_or(0) as u32,
-        views: paste.views as u32,
-        first_file: File {
-            filename: paste.filename,
-            content: paste.content,
-            language: paste.language,
-        },
-    }).collect()))
+    Ok(JsonResponse::ok(
+        stars
+            .into_iter()
+            .map(|paste| PastePreview {
+                id: paste.id,
+                name: paste.name,
+                description: paste.description,
+                author_id: paste.author_id,
+                author_name: paste.username,
+                created_at: paste.created_at.timestamp(),
+                visibility: PasteVisibility::from(paste.visibility as u8),
+                stars: paste.stars.unwrap_or(0) as u32,
+                views: paste.views as u32,
+                first_file: File {
+                    filename: paste.filename,
+                    content: paste.content,
+                    language: paste.language,
+                },
+            })
+            .collect(),
+    ))
 }
 
 pub async fn put_star(
