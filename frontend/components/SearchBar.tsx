@@ -1,5 +1,5 @@
 import Image from 'next/future/image';
-import { useState, type InputHTMLAttributes } from 'react';
+import { useState, useRef, type InputHTMLAttributes } from 'react';
 import styled from 'styled-components';
 
 import Icon from '../public/icon-search.svg'
@@ -29,8 +29,8 @@ const Input = styled.input`
 const SearchIcon = styled(Image)<{ active: boolean }>`
   user-select: none;
   filter: ${props => props.active 
-    ? 'invert(29%) sepia(90%) saturate(2980%) hue-rotate(211deg) brightness(100%) contrast(104%)'
-    : 'invert(100%) brightness(100%)'};
+    ? 'var(--color-primary-filter)'
+    : 'var(--color-text-filter)'};
   transition: all 0.3s ease;
   width: 1em;
   height: auto;
@@ -38,15 +38,30 @@ const SearchIcon = styled(Image)<{ active: boolean }>`
   position: absolute;
   padding-top: calc(4px + 0.5em);
   padding-left: calc(4px + 0.5em);
+  cursor: pointer;
+  
+  &:hover {
+    opacity: ${props => props.active ? 1 : 0.75};
+  }
 `;
 
 export default function SearchBar(props: InputHTMLAttributes<any>) {
   const [active, setActive] = useState(false);
+  const inputElement = useRef<HTMLInputElement>(null);
 
   return (
     <div>
-      <SearchIcon src={Icon} alt="Search" active={active} />
+      <SearchIcon
+        src={Icon}
+        alt="Search"
+        active={active}
+        onClick={() => {
+          setActive(true);
+          inputElement.current!.focus();
+        }}
+      />
       <Input
+        ref={inputElement}
         type="text"
         placeholder="Search..."
         onFocus={() => setActive(true)}

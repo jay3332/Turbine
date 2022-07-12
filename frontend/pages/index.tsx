@@ -143,7 +143,7 @@ const NewPasteButton = styled(BaseButton)`
   color: var(--color-text);
   
   img {
-    filter: invert(100%) brightness(100%);
+    filter: var(--color-text-filter);
   }
   
   &:hover {
@@ -158,13 +158,7 @@ const DiscoverPastesButton = styled(BaseButton)`
   color: var(--color-success);
   
   img {
-    filter: 
-      invert(73%)
-      sepia(77%)
-      saturate(415%)
-      hue-rotate(68deg)
-      brightness(97%)
-      contrast(87%);
+    filter: var(--color-success-filter);
   }
   
   &:hover {
@@ -173,7 +167,7 @@ const DiscoverPastesButton = styled(BaseButton)`
     border-color: transparent;
     
     img {
-      filter: invert(100%) brightness(100%);
+      filter: var(--color-text-filter);
     }
   }
 `;

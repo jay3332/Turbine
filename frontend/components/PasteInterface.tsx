@@ -8,6 +8,9 @@ import SearchBar from './SearchBar';
 import languages from "../public/languages.json"
 import AngleDownIcon from '../public/icon-angle-down.svg'
 import AngleRightIcon from '../public/icon-angle-right.svg'
+import PlusIcon from '../public/icon-plus.svg'
+import TrashIcon from '../public/icon-trash.svg'
+import UploadIcon from '../public/icon-upload.svg'
 
 const AceEditor = dynamic(async () => {
   const reactAce = await import("react-ace");
@@ -141,6 +144,13 @@ const FileConfig = styled.div`
   width: 100%;
 `;
 
+const FilenameInputRow = styled.div`
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  align-items: center;
+`;
+
 const FilenameInput = styled.input`
   border: var(--color-bg-2) 2px dashed;
   font-weight: 400;
@@ -217,7 +227,7 @@ const BaseEditor = styled(AceEditor)`
 `;
 
 const ArrowImage = styled(Image)`
-  filter: invert(100%) brightness(100%);
+  filter: var(--color-text-filter);
   width: 14px;
   height: 14px;
   margin: 10px 8px 0 8px;
@@ -400,6 +410,123 @@ const LanguageEntryText = styled.div`
   margin-left: 6px;
 `;
 
+const ActionButtons = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 16px 0;
+  flex-wrap: wrap;
+`
+
+const ActionButtonContainer = styled.div`
+  display: flex;
+`;
+
+const ActionButtonImage = styled(Image)`
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  
+  @media screen and (max-width: 768px) {
+    margin: 4px;
+  }
+`;
+
+const ActionButton = styled.button<{ inverted?: boolean, color: string }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  padding: 14px;
+  box-sizing: border-box;
+  user-select: none;
+  cursor: pointer;
+  margin-left: 12px;
+  background-color: ${props => props.inverted ? 'transparent' : `var(--color-${props.color})`};
+  border: ${props => props.inverted ? `var(--color-${props.color})` : 'transparent'} 2px solid;
+  
+  span {
+    color: ${props => props.inverted ? `var(--color-${props.color})` : 'var(--color-text)'};
+    font-size: 16px;
+    font-weight: 600;
+  }
+  
+  ${ActionButtonImage} {
+    filter: ${props => props.inverted ? `var(--color-${props.color}-filter)` : 'var(--color-text-filter)'};
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+    background-color: ${props => props.inverted ? `var(--color-${props.color})` : `var(--color-${props.color}-blend)`};
+    
+    span {
+      color: var(--color-text);
+    }
+    
+    ${ActionButtonImage} {
+      filter: var(--color-text-filter);
+    }
+  }
+  
+  @media screen and (max-width: 768px) {
+    border-radius: 50%;
+    
+    span {
+      display: none;
+    }
+  }
+`;
+
+ActionButton.defaultProps = {
+  inverted: false,
+}
+
+const ActionButtonHint = styled.div`
+  font-size: 14px;
+  user-select: none;
+  opacity: 0.4;
+  margin-top: 6px;
+  font-weight: 700;
+  text-align: center;
+  
+  @media screen and (max-width: 768px) {
+    display: none;
+  }
+`;
+
+const DeleteFileButton = styled(Image)`
+  cursor: pointer;
+  filter: var(--color-error-filter);
+  width: 18px;
+  height: 18px;
+  margin-left: 16px;
+  margin-right: 8px;
+  user-select: none;
+  opacity: 0.8;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    opacity: 1;
+  }
+`;
+
+const FileSize = styled.div`
+  user-select: none;
+  font-weight: 700;
+  opacity: 0.4;
+  font-size: 16px;
+  flex-grow: 1;
+  text-align: right;
+  margin-right: 6px;
+  
+  @media screen and (max-width: 900px) {
+    display: none;
+  }
+`
+
 export interface EditorProps {
   filename?: string;
   language?: string;
@@ -414,23 +541,30 @@ export interface EditorProps {
 export function Editor({ filename, language, value, onFocus, onBlur, onChange, options }: EditorProps) {
   let [ mode, setMode ] = useState<string>();
   let [ hydrated, setHydrated ] = useState(false);
+  let [ wrap, setWrap ] = useState<boolean>();
 
   useEffect(() => {
     let mode: string | undefined;
+    let wrap: boolean | undefined;
 
     if (language) {
       // @ts-ignore
-      mode = languages[language]!.ace_mode;
+      let lang = languages[language]!;
+
+      mode = lang.ace_mode;
+      wrap = lang.wrap;
     } else {
       for (let language of Object.values(languages)) {
         if (language.extensions.some(ext => filename!.endsWith(ext))) {
           mode = language.ace_mode;
+          wrap = language.wrap;
           break;
         }
 
         // @ts-ignore
         if (language.filenames.includes(filename)) {
           mode = language.ace_mode;
+          wrap = language.wrap;
           break;
         }
       }
@@ -453,6 +587,7 @@ export function Editor({ filename, language, value, onFocus, onBlur, onChange, o
 
       setHydrated(true);
       setMode(mode);
+      setWrap(wrap);
     })()
   }, [filename, language])
 
@@ -486,7 +621,7 @@ export function Editor({ filename, language, value, onFocus, onBlur, onChange, o
         useSoftTabs: options.useSoftTabs,
         tabSize: options.tabSize,
         wrap: options.wrap === 0
-          ? undefined
+          ? wrap
           : options.wrap === 1,
         minLines: 10,
         maxLines: Infinity,
@@ -502,22 +637,71 @@ const defaultEditorOptions: EditorOptions = {
   wrap: 0,
 }
 
+interface IntermediateFile {
+  filename: string;
+  content: string;
+  language?: string;
+  expanded: boolean,
+  options: EditorOptions;
+  _key: number;
+}
+
+const defaultFile: () => IntermediateFile = () => ({
+  filename: "main",
+  content: "",
+  language: undefined,
+  expanded: false,
+  options: {...defaultEditorOptions},
+  _key: 0,
+})
+
+function humanizeSize(bytes: number) {
+  if (bytes < 1000) {
+    return bytes + ' B';
+  }
+
+  const units = ['kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  let u = -1;
+
+  do {
+    bytes /= 1000;
+    ++u;
+  } while (Math.round(Math.abs(bytes) * 100) / 100 >= 1000 && u < units.length - 1);
+
+  return bytes.toFixed(2) + ' ' + units[u];
+}
+
+function byteLength(str: string) {
+  let s = str.length;
+
+  for (let i = str.length - 1; i >= 0; i--) {
+    let code = str.charCodeAt(i);
+
+    if (code > 0x7f && code <= 0x7ff) s++;
+    else if (code > 0x7ff && code <= 0xffff) s+=2;
+    if (code >= 0xDC00 && code <= 0xDFFF) i--;
+  }
+
+  return s;
+}
+
 export default function PasteInterface({ callback, data }: PasteInterfaceProps) {
   const editing = callback != null;
 
   const [ title, setTitle ] = useState(data?.title)
   const [ description, setDescription ] = useState(data?.description)
 
-  let initialState = data?.files.map(file => ({ ...file, expanded: false, options: {...defaultEditorOptions} }))
-    || [{
-      filename: "main",
-      content: "",
-      expanded: false,
-      options: {...defaultEditorOptions},
-    }];
+  let initialState = data?.files
+      .map((file) => ({
+        ...file,
+        expanded: false,
+        options: {...defaultEditorOptions},
+        _key: Date.now(),
+      }))
+      || [defaultFile()];
   initialState[0]!.expanded = true;
 
-  const [ files, setFiles ] = useState(initialState)
+  const [ files, setFiles ] = useState<IntermediateFile[]>(initialState)
   const [ focused, setFocused ] = useState<number>()
   const [ languageModalIndex, setLanguageModalIndex ] = useState<number>()
   const [ languageQuery, setLanguageQuery ] = useState<string>()
@@ -594,8 +778,8 @@ export default function PasteInterface({ callback, data }: PasteInterfaceProps) 
             target.style.height = target.scrollHeight + 6 + "px"
           }}
         />
-        {files.map(({ filename, content, language, expanded, options }, i) => (
-          <File focused={i === focused} key={`file:${i}`}>
+        {files.map(({ filename, content, language, expanded, options, _key }, i) => (
+          <File focused={i === focused} key={`file:${i}:${_key}`}>
             <FileHeader>
               <ArrowImage
                 src={expanded ? AngleDownIcon : AngleRightIcon}
@@ -611,10 +795,22 @@ export default function PasteInterface({ callback, data }: PasteInterfaceProps) 
                 }}
               />
               <FileConfig>
-                <FilenameInput placeholder="Enter filename..." defaultValue={filename} onChange={e => {
-                  files[i].filename = e.target.value;
-                  setFiles(files);
-                }} />
+                <FilenameInputRow>
+                  <FilenameInput placeholder="Enter filename..." defaultValue={filename} onChange={e => {
+                    files[i].filename = e.target.value;
+                    setFiles(files);
+                  }} />
+                  <DeleteFileButton src={TrashIcon} alt="Delete File" onClick={() => {
+                    let f = [...files];
+
+                    f.splice(i, 1);
+                    setFiles(f);
+
+                    if (focused === i) {
+                      setFocused(undefined);
+                    }
+                  }} />
+                </FilenameInputRow>
                 {expanded && (
                   <FileConfigRow>
                     <FileConfigLabel>
@@ -658,6 +854,9 @@ export default function PasteInterface({ callback, data }: PasteInterfaceProps) 
                     }}>
                       Language: {language ?? 'Auto'}
                     </LanguageSelect>
+                    <FileSize>
+                      {humanizeSize(byteLength(content))}
+                    </FileSize>
                   </FileConfigRow>
                 )}
               </FileConfig>
@@ -682,6 +881,44 @@ export default function PasteInterface({ callback, data }: PasteInterfaceProps) 
             )}
           </File>
         ))}
+        <ActionButtons>
+          <ActionButtonContainer>
+            <ActionButton color="primary" onClick={() => {
+              files.push({ ...defaultFile(), expanded: true, filename: `file${files.length}`, _key: Date.now() })
+              setFiles(files);
+              setFocused(files.length - 1);
+            }}>
+              <ActionButtonImage src={PlusIcon} alt="Add File" />
+              <span>Add File</span>
+            </ActionButton>
+            <ActionButton color="primary" inverted onClick={() => {
+              let element: HTMLInputElement = document.createElement('input');
+
+              element.type = 'file';
+              element.multiple = true;
+              element.accept = 'text/*';
+
+              element.addEventListener('change', async (e: any) => {
+                let uploads = await Promise.all(Array.from(e.target.files, (file: File) => {
+                  return (async () => ({
+                    ...defaultFile(),
+                    filename: file.name,
+                    content: await file.text(),
+                    expanded: true,
+                    _key: Date.now(),
+                  }))()
+                }));
+
+                setFiles([ ...files, ...uploads ])
+              });
+
+              element.click();
+            }}>
+              <ActionButtonImage src={UploadIcon} alt="Upload File" />
+              <span>Upload File</span>
+            </ActionButton>
+          </ActionButtonContainer>
+        </ActionButtons>
       </Container>
     </>
   )

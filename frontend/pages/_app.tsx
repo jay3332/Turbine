@@ -8,11 +8,12 @@ import {useEffect} from "react";
 const GlobalStyle = createGlobalStyle`
   :root {
     --font-sans-serif: -apple-system, BlinkMacSystemFont, Inter, Segoe UI, Roboto, Oxygen,
-      Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
     --font-monospace: Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono,
-      Bitstream Vera Sans Mono, 'Courier New', monospace;
+    Bitstream Vera Sans Mono, 'Courier New', monospace;
 
     --color-text: #ffffff;
+    --color-text-filter: invert(100%) brightness(100%);
     --color-text-secondary: #858585;
     --color-text-tertiary: #666666;
     --color-link: #0dc2ff;
@@ -22,12 +23,38 @@ const GlobalStyle = createGlobalStyle`
     --color-bg-2: #2e3034;
     --color-bg-3: #3f4044;
     --color-primary: #0d6aff;
+    --color-primary-filter: invert(28%) sepia(94%) saturate(1641%) hue-rotate(206deg) brightness(101%) contrast(114%);
     --color-primary-blend: #1f59b6;
     --color-secondary: #d87a27;
     --color-secondary-blend: #c16617;
     --color-success: #54e868;
+    --color-success-filter: invert(73%) sepia(77%) saturate(415%) hue-rotate(68deg) brightness(97%) contrast(87%);
     --color-success-blend: #43ba52;
     --color-error: #f53c45;
+    --color-error-filter: invert(27%) sepia(95%) saturate(1768%) hue-rotate(337deg) brightness(100%) contrast(92%);
+  }
+
+  .theme_light {
+    --color-text: #000000;
+    --color-text-filter: brightness(0%);
+    --color-text-secondary: #858585;
+    --color-text-tertiary: #b9b9b9;
+    --color-link: #2288ff;
+    --color-link-hover: #3cadff;
+    --color-bg-0: #ffffff;
+    --color-bg-1: #d3d3d3;
+    --color-bg-2: #aaaaaa;
+    --color-bg-3: #939393;
+    --color-primary: #0d6aff;
+    --color-primary-filter: invert(28%) sepia(94%) saturate(1641%) hue-rotate(206deg) brightness(101%) contrast(114%);
+    --color-primary-blend: #5895f6;
+    --color-secondary: #d87a27;
+    --color-secondary-blend: #ed9f5b;
+    --color-success: #2cc842;
+    --color-success-filter: invert(78%) sepia(51%) saturate(3643%) hue-rotate(74deg) brightness(91%) contrast(82%);
+    --color-success-blend: #43ba52;
+    --color-error: #f53c45;
+    --color-error-filter: invert(30%) sepia(89%) saturate(1236%) hue-rotate(328deg) brightness(98%) contrast(103%);
   }
 
   * {
@@ -57,18 +84,18 @@ const GlobalStyle = createGlobalStyle`
   a:hover {
     color: var(--color-link-hover);
   }
-  
+
   .ace_autocomplete {
     border-radius: 2px;
-    
+
     * {
       font-family: var(--font-monospace);
     }
-    
+
     .ace_line-hover {
       transition: all 0.2s ease;
     }
-    
+
     span.ace_completion-meta {
       font-weight: 500;
       font-style: italic;
@@ -76,7 +103,7 @@ const GlobalStyle = createGlobalStyle`
       user-select: none;
     }
   }
-  
+
   .ace_tooltip {
     font-family: var(--font-monospace);
     background-color: var(--color-bg-2);
@@ -85,26 +112,26 @@ const GlobalStyle = createGlobalStyle`
     padding: 6px;
     font-size: 0.85em;
     transition: all 0.3s ease;
-    
+
     b {
       font-family: var(--font-sans-serif);
       font-weight: 500;
     }
-    
+
     hr {
       opacity: 0.2;
     }
-    
+
     &, * {
       color: var(--color-text);
     }
-    
+
     .ace_search {
       background-color: var(--color-bg-2) !important;
       border: none;
     }
   }
-  
+
   .ReactModal__Content {
     top: 50% !important;
     left: 50% !important;
@@ -123,19 +150,19 @@ const GlobalStyle = createGlobalStyle`
     max-height: 75vh;
     overflow-y: auto;
   }
-  
+
   .ReactModal__Overlay {
     opacity: 0;
     transition: opacity 0.3s ease-in-out;
     z-index: 1000000 !important;
   }
-  
+
   .ReactModal__Overlay--after-open {
     opacity: 1;
     background-color: rgba(0, 0, 0, 0.5) !important;
     backdrop-filter: blur(3px);
   }
-  
+
   .ReactModal__Overlay--before-close {
     opacity: 0;
   }
