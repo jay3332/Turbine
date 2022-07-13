@@ -1,0 +1,40 @@
+import type { GetServerSideProps, NextPage } from 'next';
+import Head from 'next/head'
+
+import { getPaste } from '../api/api'
+import PasteInterface, { type InboundPasteData } from '../components/PasteInterface';
+
+export const getServerSideProps: GetServerSideProps = async ({ params, req: { cookies } }) => {
+  const { id } = params! as { id: string };
+  const [ status, data ] = await getPaste(id, { cookies });
+
+  if (status === 404) {
+    return { notFound: true }
+  }
+
+  if (status === 500) {
+    // @ts-ignore
+    throw new Error(`HTTP Internal Server Error encountered! Message: ${data.message}`)
+  }
+
+  return {
+    props: { data },
+  }
+}
+
+// @ts-ignore
+const ViewPaste: NextPage = ({ data }: { data: InboundPasteData }) => {
+  return (
+    <>
+      <Head>
+        <title>Turbine: {data.name}</title>
+        <meta property="og:site_name" content="Turbine" />
+        <meta property="og:title" content={`${data.name}` + data.author_name ? ` by ${data.author_name}` : ''} />
+        {data.description && <meta property="og:description" content={data.description.substring(0, 64)} />}
+      </Head>
+      <PasteInterface data={data} />
+    </>
+  )
+}
+
+export default ViewPaste

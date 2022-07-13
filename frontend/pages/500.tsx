@@ -1,7 +1,16 @@
 import { NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
+import styled from "styled-components";
+
 import { Container, Main, BottomText, BackToHome } from "./404";
+
+const SmallText = styled.p`
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  font-weight: 600;
+  text-align: center;
+`;
 
 const InternalServerError: NextPage = () => {
   return (
@@ -16,6 +25,11 @@ const InternalServerError: NextPage = () => {
         500
       </Main>
       <BottomText>Internal Server Error</BottomText>
+      <SmallText>
+        If this error persists, please let <a href="https://github.com/jay3332">the developer</a> know.
+        <br/>
+        You can also view the console for more information about the error.
+      </SmallText>
       <Link href="/">
         <BackToHome>Back to Home</BackToHome>
       </Link>

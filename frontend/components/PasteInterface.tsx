@@ -31,7 +31,7 @@ const AceEditor = dynamic(async () => {
 })
 
 export interface InboundPasteData {
-  title: string;
+  name: string;
   description: string;
   files: {
     filename: string,
@@ -41,6 +41,9 @@ export interface InboundPasteData {
   author_id: string,
   author_name: string,
   visibility: 0 | 1 | 2 | 3,
+  created_at: number,
+  views: number,
+  stars: number,
 }
 
 export interface OutboundPasteData {
@@ -688,7 +691,7 @@ function byteLength(str: string) {
 export default function PasteInterface({ callback, data }: PasteInterfaceProps) {
   const editing = callback != null;
 
-  const [ title, setTitle ] = useState(data?.title)
+  const [ title, setTitle ] = useState(data?.name)
   const [ description, setDescription ] = useState(data?.description)
 
   let initialState = data?.files
@@ -768,7 +771,7 @@ export default function PasteInterface({ callback, data }: PasteInterfaceProps) 
         </LanguageEntries>
       </Modal>
       <Container>
-        <Title defaultValue={data?.title || 'Untitled Paste'} maxLength={64} onChange={e => setTitle(e.target.value)} />
+        <Title defaultValue={data?.name || 'Untitled Paste'} maxLength={64} onChange={e => setTitle(e.target.value)} />
         <Description
           placeholder="Enter a description..."
           maxLength={1024}
