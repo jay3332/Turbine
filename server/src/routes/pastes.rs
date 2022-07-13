@@ -345,6 +345,8 @@ pub async fn post_paste(
     .execute(&mut transaction)
     .await?;
 
+    transaction.commit().await?;
+
     Ok(JsonResponse(StatusCode::CREATED, PasteResponse { id }))
 }
 

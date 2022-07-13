@@ -362,6 +362,8 @@ pub async fn put_star(
         assert_eq!(deleted, 1);
     }
 
+    transaction.commit().await?;
+
     Ok(JsonResponse::ok(PutStarResponse {
         stars: initial_stars as u32,
         deleted: rows_affected == 0,
