@@ -1,5 +1,31 @@
 {
   "db": "PostgreSQL",
+  "00258193052bac5732ea80944d986fc09e64c0ff1016b512fb6691452be580e6": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "DELETE FROM stars WHERE user_id = $1 AND paste_id = $2"
+  },
+  "0eb831986fc4605009c745b553a1bd614056063ad34c971dab2d36f7174e885d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO stars VALUES ($1, $2) ON CONFLICT DO NOTHING"
+  },
   "32db067ee512f84092fda411950c08c46518b2c6be846c1b07072d8b10840fc7": {
     "describe": {
       "columns": [
@@ -177,6 +203,98 @@
     },
     "query": "UPDATE pastes SET views = views + 1 RETURNING views"
   },
+  "68e900ff71ac44e3698956591be483101cd80636b098b15f29e4d26b16faf16d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "author_id",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "visibility",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "password",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "views",
+          "ordinal": 6,
+          "type_info": "Int4"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 7,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "username?",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "filename?",
+          "ordinal": 9,
+          "type_info": "Text"
+        },
+        {
+          "name": "content!",
+          "ordinal": 10,
+          "type_info": "Text"
+        },
+        {
+          "name": "language?",
+          "ordinal": 11,
+          "type_info": "Text"
+        },
+        {
+          "name": "stars",
+          "ordinal": 12,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        SELECT\n            pastes.*,\n            u.username AS \"username?\",\n            f.filename AS \"filename?\",\n            f.content AS \"content!\",\n            f.language AS \"language?\",\n            (SELECT COUNT(*) FROM stars WHERE paste_id = pastes.id) AS stars\n        FROM\n            pastes\n        LEFT JOIN LATERAL (\n            SELECT username FROM users WHERE users.id = pastes.author_id\n        ) AS u ON username IS NOT NULL\n        LEFT JOIN LATERAL (\n            SELECT * FROM files WHERE files.paste_id = pastes.id AND files.idx = 0\n        ) AS f ON true\n        WHERE\n            id\n        IN (SELECT paste_id FROM stars WHERE user_id = $1)\n        "
+  },
   "6b72a77f3cceef19ae665b115a21bb0fc5c3d6289c9b185705dd0bf54f6de2f2": {
     "describe": {
       "columns": [],
@@ -280,6 +398,26 @@
       }
     },
     "query": "SELECT id FROM users WHERE username = $1"
+  },
+  "e2002be6ef0dd2624df2a7b1a073efb11271ddd3a2707dbd5ad95939f58dab79": {
+    "describe": {
+      "columns": [
+        {
+          "name": "count",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT COUNT(*) AS count FROM stars WHERE paste_id = $1"
   },
   "ff04920d95bdd46d50b8a0d95824669dcab961c43b09b2aabd89848ca1dbd2e9": {
     "describe": {
