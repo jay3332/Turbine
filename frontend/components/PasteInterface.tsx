@@ -1,8 +1,10 @@
 import dynamic from "next/dynamic";
 import Image from 'next/future/image';
+import { useRouter } from "next/router";
 import styled from 'styled-components'
-import { type FormEvent, useEffect, useState } from "react";
+import {type FormEvent, useEffect, useRef, useState} from "react";
 
+import { toast } from 'react-toastify'
 import Modal from './Modal';
 import SearchBar from './SearchBar';
 import languages from "../public/languages.json"
@@ -11,6 +13,9 @@ import AngleRightIcon from '../public/icon-angle-right.svg'
 import PlusIcon from '../public/icon-plus.svg'
 import TrashIcon from '../public/icon-trash.svg'
 import UploadIcon from '../public/icon-upload.svg'
+import PublishIcon from '../public/icon-publish.svg'
+import CopyIcon from '../public/icon-copy.svg'
+import NewFileIcon from '../public/icon-new-file.svg'
 
 const AceEditor = dynamic(async () => {
   const reactAce = await import("react-ace");
@@ -47,8 +52,8 @@ export interface InboundPasteData {
 }
 
 export interface OutboundPasteData {
-  title: string;
-  description: string;
+  name?: string;
+  description?: string;
   files: {
     filename: string,
     content: string,
@@ -98,6 +103,14 @@ const Title = styled.input`
   }
 `;
 
+const ReadOnlyTitle = styled.div`
+  font-weight: 600;
+  font-size: 30px;
+  box-sizing: border-box;
+  width: 100%;
+  padding-top: 12px;
+`;
+
 const Description = styled.textarea`
   font-size: 16px;
   font-weight: 500;
@@ -122,6 +135,23 @@ const Description = styled.textarea`
   }
 `;
 
+const PasteInfo = styled.div`
+  font-weight: 600;
+  font-size: 14px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  color: var(--color-text-tertiary);
+`;
+
+const ReadOnlyDescription = styled.div`
+  font-weight: 500;
+  font-size: 18px;
+  color: var(--color-text-secondary);
+  box-sizing: border-box;
+  width: 100%;
+  padding-bottom: 6px;
+`;
+
 const File = styled.div<{ focused: boolean }>`
   width: 100%;
   box-sizing: border-box;
@@ -138,6 +168,11 @@ const FileHeader = styled.div`
   @media screen and (max-width: 767px) {
     padding-bottom: 0;
   }
+`;
+
+const ReadOnlyFileHeader = styled.div`
+  padding: 6px;
+  display: flex;
 `;
 
 const FileConfig = styled.div`
@@ -173,6 +208,14 @@ const FilenameInput = styled.input`
   &::placeholder {
     font-weight: 600;
   }
+`;
+
+const Filename = styled.div`
+  font-weight: 500;
+  font-size: 17px;
+  padding: 5px;
+  box-sizing: border-box;
+  width: 100%;
 `;
 
 const FileConfigRow = styled.div`
@@ -242,6 +285,10 @@ const ArrowImage = styled(Image)`
   &:hover {
     opacity: 0.7;
   }
+`;
+
+const ReadOnlyArrowImage = styled(ArrowImage)`
+  margin: 8px 8px 0 8px;
 `;
 
 const SoftTabsButton = styled.button<{ isSoft: boolean }>`
@@ -415,7 +462,7 @@ const LanguageEntryText = styled.div`
 
 const ActionButtons = styled.div`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-end;
   box-sizing: border-box;
   width: 100%;
@@ -425,6 +472,8 @@ const ActionButtons = styled.div`
 
 const ActionButtonContainer = styled.div`
   display: flex;
+  flex-direction: column;
+  margin-left: 12px;
 `;
 
 const ActionButtonImage = styled(Image)`
@@ -437,7 +486,7 @@ const ActionButtonImage = styled(Image)`
   }
 `;
 
-const ActionButton = styled.button<{ inverted?: boolean, color: string }>`
+const ActionButton = styled.button<{ inverted?: boolean, color: string, hoverColor?: string }>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -447,7 +496,6 @@ const ActionButton = styled.button<{ inverted?: boolean, color: string }>`
   box-sizing: border-box;
   user-select: none;
   cursor: pointer;
-  margin-left: 12px;
   background-color: ${props => props.inverted ? 'transparent' : `var(--color-${props.color})`};
   border: ${props => props.inverted ? `var(--color-${props.color})` : 'transparent'} 2px solid;
   
@@ -463,7 +511,7 @@ const ActionButton = styled.button<{ inverted?: boolean, color: string }>`
   
   &:hover {
     transform: translateY(-2px);
-    background-color: ${props => props.inverted ? `var(--color-${props.color})` : `var(--color-${props.color}-blend)`};
+    background-color: ${props => props.inverted ? `var(--color-${props.color})` : `var(--color-${props.hoverColor})`};
     
     span {
       color: var(--color-text);
@@ -472,6 +520,11 @@ const ActionButton = styled.button<{ inverted?: boolean, color: string }>`
     ${ActionButtonImage} {
       filter: var(--color-text-filter);
     }
+  }
+  
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
   }
   
   @media screen and (max-width: 768px) {
@@ -492,11 +545,31 @@ const ActionButtonHint = styled.div`
   user-select: none;
   opacity: 0.4;
   margin-top: 6px;
-  font-weight: 700;
+  font-weight: 400;
   text-align: center;
   
   @media screen and (max-width: 768px) {
     display: none;
+  }
+`;
+
+const FileActionButtons = styled.div`
+  display: flex;
+  margin-right: 8px;
+`;
+
+const FileActionButton = styled(Image)`
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  margin-left: 16px;
+  user-select: none;
+  opacity: 0.8;
+  transition: all 0.3s ease;
+  filter: var(--color-text-filter);
+  
+  &:hover {
+    opacity: 1;
   }
 `;
 
@@ -535,13 +608,14 @@ export interface EditorProps {
   language?: string;
   theme?: string;
   value: string;
-  onFocus(): any;
-  onBlur(): any;
-  onChange(value: string): any;
-  options: EditorOptions;
+  onFocus?(): any;
+  onBlur?(): any;
+  onChange?(value: string): any;
+  options?: EditorOptions;
+  readOnly?: boolean;
 }
 
-export function Editor({ filename, language, value, onFocus, onBlur, onChange, options }: EditorProps) {
+export function Editor({ filename, language, value, onFocus, onBlur, onChange, options, readOnly }: EditorProps) {
   let [ mode, setMode ] = useState<string>();
   let [ hydrated, setHydrated ] = useState(false);
   let [ wrap, setWrap ] = useState<boolean>();
@@ -621,15 +695,20 @@ export function Editor({ filename, language, value, onFocus, onBlur, onChange, o
         enableLiveAutocompletion: true,
         showLineNumbers: true,
         cursorStyle: 'smooth',
-        useSoftTabs: options.useSoftTabs,
-        tabSize: options.tabSize,
-        wrap: options.wrap === 0
-          ? wrap
-          : options.wrap === 1,
+        useSoftTabs: options?.useSoftTabs ?? true,
+        tabSize: options?.tabSize ?? 4,
+        wrap: options?.wrap != null
+          ? (
+            options.wrap === 0
+              ? wrap
+              : options.wrap === 1
+          )
+          : wrap,
         minLines: 10,
         maxLines: Infinity,
       }}
       onChange={onChange}
+      readOnly={readOnly}
     />
   )
 }
@@ -658,7 +737,7 @@ const defaultFile: () => IntermediateFile = () => ({
   _key: 0,
 })
 
-function humanizeSize(bytes: number) {
+function humanizeSize(bytes: number): string {
   if (bytes < 1000) {
     return bytes + ' B';
   }
@@ -672,6 +751,40 @@ function humanizeSize(bytes: number) {
   } while (Math.round(Math.abs(bytes) * 100) / 100 >= 1000 && u < units.length - 1);
 
   return bytes.toFixed(2) + ' ' + units[u];
+}
+
+function humanizeDuration(seconds: number): string {
+  if (seconds < 5) {
+    return 'a few seconds'
+  }
+
+  else if (seconds < 60) {
+    return `${~~seconds} seconds`
+  }
+
+  const units = [
+    ['second', 60],
+    ['minute', 60],
+    ['hour', 24],
+    ['day', 30],
+    ['month', 12],
+    ['year', Infinity],
+  ] as const;
+
+  let lookup = [];
+
+  for (const [ unit, factor ] of units) {
+    lookup.push([unit, seconds % factor]);
+    seconds = ~~(seconds / factor);
+  }
+
+  for (const [ unit, count ] of lookup.reverse()) {
+    if (count > 0) {
+      return `${count} ${unit}${count > 1 ? 's' : ''}`
+    }
+  }
+
+  return 'a few seconds'
 }
 
 function byteLength(str: string) {
@@ -688,9 +801,79 @@ function byteLength(str: string) {
   return s;
 }
 
-export default function PasteInterface({ callback, data }: PasteInterfaceProps) {
-  const editing = callback != null;
+export function ReadOnlyPasteInterface({ data }: { data: InboundPasteData }) {
+  const [ expanded, setExpanded ] = useState<number[]>(Object.keys(data.files).map(parseInt));
+  const router = useRouter();
 
+  useEffect(() => {
+    document.addEventListener('keydown', async (e) => {
+      if (e.key === 'n' && e.altKey) {
+        e.preventDefault();
+        await router.push('/new');
+      }
+    })
+  }, [router])
+
+  return (
+    <Container>
+      <ReadOnlyTitle>{data.name}</ReadOnlyTitle>
+      <PasteInfo>
+        {data.author_name && `${data.author_name} \u2014 `}
+        Created {humanizeDuration(Date.now() / 1000 - data.created_at)} ago
+      </PasteInfo>
+      <ReadOnlyDescription>{data.description}</ReadOnlyDescription>
+      {data.files.map((file, i) => {
+        const isExpanded = expanded.includes(i);
+
+        return (
+          <File focused={false} key={i}>
+            <ReadOnlyFileHeader>
+              <ReadOnlyArrowImage
+                onClick={() => setExpanded(isExpanded ? expanded.filter(j => j !== i) : [...expanded, i])}
+                src={isExpanded ? AngleDownIcon : AngleRightIcon}
+                alt="Expand File"
+              />
+              <FilenameInputRow>
+                <Filename>{file.filename}</Filename>
+                <FileActionButtons>
+                  <FileActionButton
+                    src={CopyIcon}
+                    alt="Copy Contents"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(file.content);
+                      toast.success('Copied to clipboard!');
+                    }}
+                  />
+                </FileActionButtons>
+              </FilenameInputRow>
+            </ReadOnlyFileHeader>
+            {isExpanded && (
+              <Editor
+                filename={file.filename}
+                language={file.language}
+                value={file.content}
+                readOnly
+              />
+            )}
+          </File>
+        )
+      })}
+      <ActionButtons>
+        <ActionButtonContainer>
+          <ActionButton color="primary" hoverColor="primary-blend" onClick={() => router.push('/new')}>
+            <ActionButtonImage src={PlusIcon} alt="New Paste" />
+            <span>New Paste</span>
+          </ActionButton>
+          <ActionButtonHint>
+            Alt + N
+          </ActionButtonHint>
+        </ActionButtonContainer>
+      </ActionButtons>
+    </Container>
+  )
+}
+
+export function EditablePasteInterface({ callback, data }: PasteInterfaceProps) {
   const [ title, setTitle ] = useState(data?.name)
   const [ description, setDescription ] = useState(data?.description)
 
@@ -708,6 +891,23 @@ export default function PasteInterface({ callback, data }: PasteInterfaceProps) 
   const [ focused, setFocused ] = useState<number>()
   const [ languageModalIndex, setLanguageModalIndex ] = useState<number>()
   const [ languageQuery, setLanguageQuery ] = useState<string>()
+
+  const router = useRouter();
+  const publishPasteRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    document.addEventListener('keydown', async (e) => {
+      if (e.key === 'n' && e.altKey) {
+        e.preventDefault();
+        await router.push('/new');
+      }
+
+      else if (e.key === 's' && e.ctrlKey) {
+        e.preventDefault();
+        await publishPasteRef.current?.click();
+      }
+    })
+  }, [router])
 
   useEffect(() => {
     setLanguageQuery(undefined);
@@ -886,14 +1086,16 @@ export default function PasteInterface({ callback, data }: PasteInterfaceProps) 
         ))}
         <ActionButtons>
           <ActionButtonContainer>
-            <ActionButton color="primary" onClick={() => {
+            <ActionButton color="primary" hoverColor="primary-blend" onClick={() => {
               files.push({ ...defaultFile(), expanded: true, filename: `file${files.length}`, _key: Date.now() })
               setFiles(files);
               setFocused(files.length - 1);
             }}>
-              <ActionButtonImage src={PlusIcon} alt="Add File" />
+              <ActionButtonImage src={NewFileIcon} alt="Add File" />
               <span>Add File</span>
             </ActionButton>
+          </ActionButtonContainer>
+          <ActionButtonContainer>
             <ActionButton color="primary" inverted onClick={() => {
               let element: HTMLInputElement = document.createElement('input');
 
@@ -921,8 +1123,45 @@ export default function PasteInterface({ callback, data }: PasteInterfaceProps) 
               <span>Upload File</span>
             </ActionButton>
           </ActionButtonContainer>
+          <ActionButtonContainer>
+            <ActionButton ref={publishPasteRef} color="success-blend" hoverColor="success" onClick={async (e) => {
+              if (e.currentTarget != e.target) {
+                return;
+              }
+
+              const target: HTMLButtonElement = e.currentTarget as HTMLButtonElement;
+
+              target.disabled = true;
+              target.querySelector('span')!.innerHTML = 'Publishing...';
+
+              await callback?.({
+                name: title,
+                description,
+                files: files.map(({ filename, content, language }) => ({
+                  filename,
+                  content,
+                  language,
+                }))
+              })
+
+              target.disabled = false;
+              target.querySelector('span')!.innerHTML = 'Publish Paste';
+            }}>
+              <ActionButtonImage src={PublishIcon} alt="Publish Paste" />
+              <span>Publish Paste</span>
+            </ActionButton>
+            <ActionButtonHint>
+              Ctrl + S
+            </ActionButtonHint>
+          </ActionButtonContainer>
         </ActionButtons>
       </Container>
     </>
   )
+}
+
+export default function ParseInterface({ callback, data }: PasteInterfaceProps) {
+  return callback != null
+    ? <EditablePasteInterface callback={callback} data={data} />
+    : <ReadOnlyPasteInterface data={data!} />
 }

@@ -1,9 +1,11 @@
-import { createGlobalStyle } from 'styled-components';
+import styled, { createGlobalStyle } from 'styled-components';
 import type { AppProps } from 'next/app'
 import NavBar from "../components/NavBar";
 import Head from "next/head";
 import Modal from "react-modal";
-import {useEffect} from "react";
+import { ToastContainer } from 'react-toastify';
+import { useEffect } from "react";
+import 'react-toastify/dist/ReactToastify.css';
 
 const GlobalStyle = createGlobalStyle`
   :root {
@@ -168,6 +170,16 @@ const GlobalStyle = createGlobalStyle`
   }
 `;
 
+const Toast = styled(ToastContainer).attrs({
+  className: 'toast-container',
+  toastClassName: 'toast',
+})`
+  .toast {
+    background-color: var(--color-bg-1);
+    color: var(--color-text);
+  }
+`;
+
 export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
     Modal.setAppElement('#__next');
@@ -187,6 +199,17 @@ export default function App({ Component, pageProps }: AppProps) {
         </Head>
         <NavBar />
         <Component {...pageProps} />
+        <Toast
+          position="bottom-left"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        />
       </>
   )
 }

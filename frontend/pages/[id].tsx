@@ -1,4 +1,4 @@
-import type { GetServerSideProps, NextPage } from 'next';
+import type { GetServerSideProps } from 'next';
 import Head from 'next/head'
 
 import { getPaste } from '../api/api'
@@ -22,12 +22,11 @@ export const getServerSideProps: GetServerSideProps = async ({ params, req: { co
   }
 }
 
-// @ts-ignore
-const ViewPaste: NextPage = ({ data }: { data: InboundPasteData }) => {
+export default function ViewPaste({ data }: { data: InboundPasteData }) {
   return (
     <>
       <Head>
-        <title>Turbine: {data.name}</title>
+        <title>{`Turbine: ${data.name}`}</title>
         <meta property="og:site_name" content="Turbine" />
         <meta property="og:title" content={`${data.name}` + data.author_name ? ` by ${data.author_name}` : ''} />
         {data.description && <meta property="og:description" content={data.description.substring(0, 64)} />}
@@ -36,5 +35,3 @@ const ViewPaste: NextPage = ({ data }: { data: InboundPasteData }) => {
     </>
   )
 }
-
-export default ViewPaste

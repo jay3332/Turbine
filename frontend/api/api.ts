@@ -1,4 +1,4 @@
-import type { InboundPasteData } from "../components/PasteInterface";
+import type { InboundPasteData, OutboundPasteData } from "../components/PasteInterface";
 
 export enum RequestMethod {
   GET = "GET",
@@ -82,4 +82,11 @@ export async function request<Response>(
 
 export async function getPaste(id: string, options?: RequestOptions): Promise<ApiResponse<InboundPasteData>> {
   return request<InboundPasteData>(RequestMethod.GET, `/pastes/${id}`, options);
+}
+
+export async function createPaste(payload: OutboundPasteData, options?: RequestOptions): Promise<ApiResponse<{ id: string }>> {
+  return request<{ id: string }>(RequestMethod.POST, "/pastes", {
+    json: payload,
+    ...options,
+  });
 }
