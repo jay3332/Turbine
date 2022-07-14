@@ -32,7 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api", routes::users::router())
         .route_layer(CorsLayer::permissive());
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8081));
+    let addr = SocketAddr::from(([127, 0, 0, 1], get_config().server.port));
     let server = axum::Server::bind(&addr)
         .serve(router.into_make_service_with_connect_info::<SocketAddr>())
         .with_graceful_shutdown(async {

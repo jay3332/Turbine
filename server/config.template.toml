@@ -1,5 +1,9 @@
 # Config template
 
+# Configuration variables for the server itself.
+[server]
+port = 8081 # The port on which the server will listen, defaults to 8081.
+
 # Configuration variables for the database.
 [database]
 host = "localhost" # Defaults to localhost
