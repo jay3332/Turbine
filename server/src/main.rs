@@ -16,13 +16,13 @@ use axum::{http::StatusCode, routing::get, Router};
 use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;
 
-pub use cache::{get_cache, get_cache_mut};
 pub use config::get_config;
 pub use database::get_pool;
 pub use ratelimit::RatelimitLayer;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    cache::setup().await?;
     database::connect().await?;
     database::migrate().await;
     auth::configure_hasher().await;

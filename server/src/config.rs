@@ -10,6 +10,17 @@ pub struct Config {
     pub server: ServerConfig,
     pub database: DatabaseConfig,
     pub github: GithubConfig,
+    pub redis: RedisConfig,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct RedisConfig {
+    #[serde(default = "default_redis_url")]
+    pub url: String,
+}
+
+fn default_redis_url() -> String {
+    "redis://localhost".to_string()
 }
 
 #[derive(Clone, Deserialize)]

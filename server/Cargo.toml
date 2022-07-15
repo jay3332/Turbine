@@ -14,6 +14,7 @@ check-if-email-exists = "0.8"
 chrono = "0.4.19"
 forwarded-header-value = "0.1"
 rand = "0.8.5"
+redis = { version = "0.21", features = ["tokio-comp"] }
 reqwest = { version = "0.11", features = ["rustls-tls"] }
 ring = "0.16.20"
 serde = "1.0.137"

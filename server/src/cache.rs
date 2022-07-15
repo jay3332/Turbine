@@ -1,49 +1,56 @@
-//! A low-effort and simple hashmap-based cache. I plan to use Redis for this in the future.
+use redis::{AsyncCommands, Client};
+use std::sync::OnceLock;
 
-use crate::{get_pool, json::JsonResponse, routes::Error};
-use std::{collections::HashMap, sync::OnceLock};
+use crate::{get_config, get_pool, json::Error, routes::JsonResponse};
 
-pub static mut CACHE: OnceLock<Cache> = OnceLock::new();
+static CLIENT: OnceLock<Client> = OnceLock::new();
 
-#[derive(Debug, Default)]
-pub struct Cache {
-    // token -> id
-    pub tokens: HashMap<String, String>,
+pub async fn setup() -> Result<(), Box<dyn std::error::Error>> {
+    let client = Client::open(get_config().redis.url.clone())?;
+    // Test connection
+    let _ = redis::cmd("PING")
+        .query_async::<_, ()>(&mut client.get_tokio_connection().await?)
+        .await?;
+
+    CLIENT
+        .set(client)
+        .expect("CLIENT.set called more than once");
+
+    Ok(())
 }
 
-impl Cache {
-    pub fn new() -> Self {
-        Self::default()
+pub async fn resolve_token(token: &str) -> Result<String, JsonResponse<Error>> {
+    if let Some(id) = CLIENT
+        .get()
+        .expect("Didn't call `cache::setup`")
+        .get_tokio_connection()
+        .await?
+        .hget::<_, _, Option<String>>("turbine_token_to_id", token)
+        .await?
+    {
+        return Ok(id);
     }
 
-    pub async fn resolve_token(&mut self, token: String) -> Result<String, JsonResponse<Error>> {
-        if let Some(id) = self.tokens.get(&token) {
-            return Ok(id.clone());
-        }
+    let id = sqlx::query!("SELECT user_id FROM tokens WHERE token = $1", token)
+        .fetch_optional(get_pool())
+        .await?
+        .ok_or_else(|| {
+            (
+                404,
+                Error {
+                    message: "Invalid authorization token".to_string(),
+                },
+            )
+        })?
+        .user_id;
 
-        Ok(
-            sqlx::query!("SELECT user_id FROM tokens WHERE token = $1", token)
-                .fetch_optional(get_pool())
-                .await?
-                .ok_or_else(|| {
-                    (
-                        404,
-                        Error {
-                            message: "Invalid authorization token".to_string(),
-                        },
-                    )
-                })?
-                .user_id,
-        )
-    }
-}
+    let _ = CLIENT
+        .get()
+        .expect("Didn't call `cache::setup`")
+        .get_tokio_connection()
+        .await?
+        .hset::<_, _, _, ()>("turbine_token_to_id", token, &id)
+        .await?;
 
-pub fn get_cache() -> &'static Cache {
-    unsafe { CACHE.get_or_init(Cache::default) }
-}
-
-pub fn get_cache_mut() -> &'static mut Cache {
-    get_cache(); // Ensure cache is initialized first
-
-    unsafe { CACHE.get_mut().unwrap() }
+    Ok(id)
 }

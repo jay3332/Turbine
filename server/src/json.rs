@@ -47,6 +47,17 @@ impl<T: Serialize> From<(StatusCode, T)> for JsonResponse<T> {
     }
 }
 
+impl From<redis::RedisError> for JsonResponse<Error> {
+    fn from(err: redis::RedisError) -> Self {
+        Self(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Error {
+                message: format!("Redis Error: {:?}", err),
+            },
+        )
+    }
+}
+
 impl From<sqlx::Error> for JsonResponse<Error> {
     fn from(err: sqlx::Error) -> Self {
         Self(

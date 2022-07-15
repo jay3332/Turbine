@@ -2,7 +2,7 @@ pub mod pastes;
 pub mod users;
 
 pub use crate::{
-    get_cache_mut,
+    cache::resolve_token,
     json::{Error, JsonResponse},
 };
 
@@ -39,8 +39,6 @@ impl FromRequest<Body> for Authorization {
             )
         })?;
 
-        Ok(Self(
-            get_cache_mut().resolve_token(content.to_string()).await?,
-        ))
+        Ok(Self(resolve_token(content).await?))
     }
 }

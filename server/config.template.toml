@@ -1,5 +1,9 @@
 # Config template
 
+# Configuration variables for Redis
+[redis]
+url = "redis://localhost" # The redis connection url
+
 # Configuration variables for the server itself.
 [server]
 port = 8081 # The port on which the server will listen, defaults to 8081.
