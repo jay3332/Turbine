@@ -69,6 +69,7 @@ pub struct PastePreview {
     pub created_at: i64,
     pub views: u32,
     pub stars: u32,
+    pub available: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -247,7 +248,16 @@ pub async fn post_paste(
         }
     }
 
-    if payload.files.len() > 16 {
+    if payload.files.is_empty() {
+        return Err(JsonResponse(
+            StatusCode::BAD_REQUEST,
+            Error {
+                message: "No files provided".to_string(),
+            },
+        ));
+    }
+
+    else if payload.files.len() > 16 {
         return Err(JsonResponse(
             StatusCode::BAD_REQUEST,
             Error {
