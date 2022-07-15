@@ -1,7 +1,7 @@
 pub mod pastes;
 pub mod users;
 
-pub use crate::{get_cache_mut, json::JsonResponse};
+pub use crate::{get_cache_mut, json::{Error, JsonResponse}};
 
 use axum::{
     async_trait,
@@ -9,15 +9,9 @@ use axum::{
     extract::{FromRequest, RequestParts},
     http::header::AUTHORIZATION,
 };
-use serde::Serialize;
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Authorization(pub String);
-
-#[derive(Clone, Serialize)]
-pub struct Error {
-    pub message: String,
-}
 
 #[async_trait]
 impl FromRequest<Body> for Authorization {

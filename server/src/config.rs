@@ -9,6 +9,7 @@ pub static CONFIG: OnceLock<Config> = OnceLock::new();
 pub struct Config {
     pub server: ServerConfig,
     pub database: DatabaseConfig,
+    pub github: GithubConfig,
 }
 
 #[derive(Clone, Deserialize)]
@@ -19,6 +20,12 @@ pub struct ServerConfig {
 
 fn default_port() -> u16 {
     8081
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct GithubConfig {
+    pub client_id: String,
+    pub client_secret: String,
 }
 
 #[derive(Clone, Deserialize)]

@@ -1,5 +1,5 @@
-use super::{Authorization, Error, JsonResponse};
-use crate::{auth::generate_id, get_pool, RatelimitLayer};
+use super::{Authorization, JsonResponse};
+use crate::{auth::generate_id, json::Error, get_pool, RatelimitLayer};
 
 use argon2_async::{hash, verify};
 use axum::{

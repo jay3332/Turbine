@@ -10,6 +10,7 @@ pub mod database;
 pub mod json;
 pub mod ratelimit;
 pub mod routes;
+pub mod oauth;
 
 use axum::{http::StatusCode, routing::get, Router};
 use std::net::SocketAddr;

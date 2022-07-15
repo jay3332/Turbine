@@ -1,6 +1,7 @@
-use super::{Authorization, Error, JsonResponse};
+use super::{Authorization, JsonResponse};
 use crate::{
     auth::{generate_id, generate_token},
+    json::Error,
     get_pool,
     routes::pastes::{File, PastePreview, PasteVisibility},
     RatelimitLayer,
@@ -60,6 +61,12 @@ pub struct LoginResponse {
 pub struct PutStarResponse {
     pub stars: u32,
     pub deleted: bool,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct ValidatePayload {
+    pub email: Option<bool>,
+    pub username: Option<bool>,
 }
 
 /// GET /users/:id
@@ -368,6 +375,52 @@ pub async fn put_star(
         stars: initial_stars as u32,
         deleted: rows_affected == 0,
     }))
+}
+
+pub async fn validate(Json(
+    ValidatePayload { 
+        email, username 
+    }): Json<ValidatePayload>
+) -> Result<JsonResponse<ValidatePayload>, JsonResponse<Error>> {
+    let mut transaction = get_pool().begin().await?;
+
+    let email_is_valid = {
+        if email.is_some() {
+            if sqlx::query!("SELECT email FROM users WHERE email = $1", email)
+                .fetch_optional(&mut transaction)
+                .await?
+                .is_some() {
+                    Some(true)
+                }
+            else {
+                Some(false)
+            }
+        } else {
+            None
+        }
+    };
+
+    let username_is_valid = {
+        if username.is_some() {
+            if sqlx::query!("SELECT email FROM users WHERE email = $1", email)
+                .fetch_optional(&mut transaction)
+                .await?
+                .is_some() {
+                    Some(true)
+                }
+            else {
+                Some(false)
+            }
+        } else {
+            None
+        }
+    };
+
+    Ok(JsonResponse::ok(ValidatePayload { 
+        email: email_is_valid,
+        username: username_is_valid
+    }
+    ))
 }
 
 macro_rules! ratelimit {

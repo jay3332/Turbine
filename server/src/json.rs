@@ -1,11 +1,14 @@
-use crate::routes::Error;
-
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
 use serde::Serialize;
+
+#[derive(Clone, Serialize)]
+pub struct Error {
+    pub message: String,
+}
 
 #[derive(Debug)]
 pub struct JsonResponse<T: Serialize>(pub StatusCode, pub T);
@@ -29,6 +32,12 @@ impl<T: Serialize> From<(u16, T)> for JsonResponse<T> {
                 .expect("error while converting into a status code, it's probably invalid."),
             json,
         )
+    }
+}
+
+impl From<String> for JsonResponse<Error> {
+    fn from(message: String) -> Self {
+        Self(StatusCode::INTERNAL_SERVER_ERROR, Error { message })
     }
 }
 
