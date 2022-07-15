@@ -9,7 +9,7 @@ use crate::{
 use argon2_async::{hash, verify};
 use axum::{
     error_handling::HandleErrorLayer,
-    extract::{Json, Path},
+    extract::{Json, Path, Query},
     handler::Handler,
     http::StatusCode,
     routing::{get, post, put},
@@ -60,6 +60,11 @@ pub struct LoginResponse {
 pub struct PutStarResponse {
     pub stars: u32,
     pub deleted: bool,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct ListStarsQuery {
+    pub user_id: Option<String>,
 }
 
 /// GET /users/:id
@@ -262,9 +267,68 @@ pub async fn login(
     Ok(JsonResponse::ok(LoginResponse { id, token }))
 }
 
+fn into_sanitized_paste(
+    PastePreview {
+        id,
+        author_id,
+        author_name,
+        created_at,
+        visibility,
+        stars,
+        views,
+        ..
+    }: PastePreview,
+) -> PastePreview {
+    PastePreview {
+        id,
+        author_id,
+        author_name,
+        created_at,
+        visibility,
+        stars,
+        views,
+        available: false,
+        name: String::new(),
+        description: None,
+        first_file: File {
+            filename: None,
+            content: String::new(),
+            language: None,
+        },
+    }
+}
+
+pub fn sanitize_paste(auth: &Option<Authorization>, preview: PastePreview) -> PastePreview {
+    if let Some(Authorization(user_id)) = auth {
+        if preview.visibility == PasteVisibility::Discoverable {
+            return preview;
+        } else if let Some(owner_id) = &preview.author_id {
+            if user_id == owner_id {
+                return preview;
+            }
+        }
+    }
+
+    into_sanitized_paste(preview)
+}
+
 pub async fn list_stars(
-    Authorization(user_id): Authorization,
+    auth: Option<Authorization>,
+    Query(ListStarsQuery { user_id }): Query<ListStarsQuery>,
 ) -> Result<JsonResponse<Vec<PastePreview>>, JsonResponse<Error>> {
+    let user_id =  if let Some(user_id) = user_id {
+        user_id
+    } else if let Some(Authorization(ref id)) = auth {
+        id.clone()
+    } else {
+        return Err(JsonResponse(
+            StatusCode::UNAUTHORIZED,
+            Error {
+                message: "You must be logged in first to view your stars".to_string(),
+            },
+        ));
+    };
+
     let db = get_pool();
 
     let stars = sqlx::query!(
@@ -311,7 +375,9 @@ pub async fn list_stars(
                     content: paste.content,
                     language: paste.language,
                 },
+                available: true,
             })
+            .map(|paste| sanitize_paste(&auth, paste))
             .collect(),
     ))
 }
