@@ -33,6 +33,8 @@ jobs:
       with:
         toolchain: nightly
         override: true
+    
+    - run: rustc --version --verbose
 
     - name: Setup cache
       uses: Swatinem/rust-cache@v1
