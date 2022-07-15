@@ -1,5 +1,5 @@
 use super::{Authorization, JsonResponse};
-use crate::{auth::generate_id, json::Error, get_pool, RatelimitLayer};
+use crate::{auth::generate_id, get_pool, json::Error, RatelimitLayer};
 
 use argon2_async::{hash, verify};
 use axum::{
@@ -255,9 +255,7 @@ pub async fn post_paste(
                 message: "No files provided".to_string(),
             },
         ));
-    }
-
-    else if payload.files.len() > 16 {
+    } else if payload.files.len() > 16 {
         return Err(JsonResponse(
             StatusCode::BAD_REQUEST,
             Error {

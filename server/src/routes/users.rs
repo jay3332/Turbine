@@ -1,8 +1,8 @@
 use super::{Authorization, JsonResponse};
 use crate::{
     auth::{generate_id, generate_token},
-    json::Error,
     get_pool,
+    json::Error,
     routes::pastes::{File, PastePreview, PasteVisibility},
     RatelimitLayer,
 };
@@ -323,7 +323,7 @@ pub async fn list_stars(
     auth: Option<Authorization>,
     Query(ListStarsQuery { user_id }): Query<ListStarsQuery>,
 ) -> Result<JsonResponse<Vec<PastePreview>>, JsonResponse<Error>> {
-    let user_id =  if let Some(user_id) = user_id {
+    let user_id = if let Some(user_id) = user_id {
         user_id
     } else if let Some(Authorization(ref id)) = auth {
         id.clone()
@@ -443,10 +443,8 @@ pub async fn put_star(
     }))
 }
 
-pub async fn validate(Json(
-    ValidatePayload { 
-        email, username 
-    }): Json<ValidatePayload>
+pub async fn validate(
+    Json(ValidatePayload { email, username }): Json<ValidatePayload>,
 ) -> Result<JsonResponse<ValidatePayload>, JsonResponse<Error>> {
     let mut transaction = get_pool().begin().await?;
 
@@ -455,10 +453,10 @@ pub async fn validate(Json(
             if sqlx::query!("SELECT email FROM users WHERE email = $1", email)
                 .fetch_optional(&mut transaction)
                 .await?
-                .is_some() {
-                    Some(true)
-                }
-            else {
+                .is_some()
+            {
+                Some(true)
+            } else {
                 Some(false)
             }
         } else {
@@ -471,10 +469,10 @@ pub async fn validate(Json(
             if sqlx::query!("SELECT email FROM users WHERE email = $1", email)
                 .fetch_optional(&mut transaction)
                 .await?
-                .is_some() {
-                    Some(true)
-                }
-            else {
+                .is_some()
+            {
+                Some(true)
+            } else {
                 Some(false)
             }
         } else {
@@ -482,11 +480,10 @@ pub async fn validate(Json(
         }
     };
 
-    Ok(JsonResponse::ok(ValidatePayload { 
+    Ok(JsonResponse::ok(ValidatePayload {
         email: email_is_valid,
-        username: username_is_valid
-    }
-    ))
+        username: username_is_valid,
+    }))
 }
 
 macro_rules! ratelimit {

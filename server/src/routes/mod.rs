@@ -1,7 +1,10 @@
 pub mod pastes;
 pub mod users;
 
-pub use crate::{get_cache_mut, json::{Error, JsonResponse}};
+pub use crate::{
+    get_cache_mut,
+    json::{Error, JsonResponse},
+};
 
 use axum::{
     async_trait,

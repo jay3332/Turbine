@@ -8,9 +8,9 @@ pub mod cache;
 pub mod config;
 pub mod database;
 pub mod json;
+pub mod oauth;
 pub mod ratelimit;
 pub mod routes;
-pub mod oauth;
 
 use axum::{http::StatusCode, routing::get, Router};
 use std::net::SocketAddr;
