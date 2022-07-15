@@ -12,6 +12,7 @@ axum = { version = "0.5.10", features = ["headers", "ws"] }
 base64 = "0.13.0"
 check-if-email-exists = "0.8"
 chrono = "0.4.19"
+deadpool-redis = "0.10"
 forwarded-header-value = "0.1"
 rand = "0.8.5"
 redis = { version = "0.21", features = ["tokio-comp"] }

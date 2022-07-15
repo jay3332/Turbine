@@ -69,6 +69,17 @@ impl From<sqlx::Error> for JsonResponse<Error> {
     }
 }
 
+impl From<deadpool_redis::PoolError> for JsonResponse<Error> {
+    fn from(err: deadpool_redis::PoolError) -> Self {
+        Self(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Error {
+                message: format!("Redis Pool Error: {:?}", err),
+            },
+        )
+    }
+}
+
 impl From<argon2_async::Error> for JsonResponse<Error> {
     fn from(err: argon2_async::Error) -> Self {
         Self(
