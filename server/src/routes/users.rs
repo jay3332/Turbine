@@ -68,10 +68,10 @@ pub struct ListStarsQuery {
     pub user_id: Option<String>,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
-pub struct ValidatePayload {
-    pub email: Option<bool>,
-    pub username: Option<bool>,
+#[derive(Clone, Deserialize)]
+pub struct ValidationPayload {
+    pub email: Option<String>,
+    pub username: Option<String>,
 }
 
 /// GET /users/:id
@@ -444,46 +444,41 @@ pub async fn put_star(
 }
 
 pub async fn validate(
-    Json(ValidatePayload { email, username }): Json<ValidatePayload>,
-) -> Result<JsonResponse<ValidatePayload>, JsonResponse<Error>> {
-    let mut transaction = get_pool().begin().await?;
+    Json(ValidationPayload { email, username }): Json<ValidationPayload>,
+) -> Result<StatusCode, JsonResponse<Error>> {
+    let db = get_pool();
 
-    let email_is_valid = {
-        if email.is_some() {
-            if sqlx::query!("SELECT email FROM users WHERE email = $1", email)
-                .fetch_optional(&mut transaction)
-                .await?
-                .is_some()
-            {
-                Some(true)
-            } else {
-                Some(false)
-            }
-        } else {
-            None
+    if let Some(email) = email {
+        if sqlx::query!("SELECT email FROM users WHERE email = $1", email)
+            .fetch_optional(db)
+            .await?
+            .is_some()
+        {
+            return Err(JsonResponse(
+                StatusCode::CONFLICT,
+                Error {
+                    message: "Email already in use".to_string(),
+                },
+            ));
         }
-    };
+    }
 
-    let username_is_valid = {
-        if username.is_some() {
-            if sqlx::query!("SELECT email FROM users WHERE email = $1", email)
-                .fetch_optional(&mut transaction)
-                .await?
-                .is_some()
-            {
-                Some(true)
-            } else {
-                Some(false)
-            }
-        } else {
-            None
+    if let Some(username) = username {
+        if sqlx::query!("SELECT username FROM users WHERE username = $1", username)
+            .fetch_optional(db)
+            .await?
+            .is_some()
+        {
+            return Err(JsonResponse(
+                StatusCode::CONFLICT,
+                Error {
+                    message: "Username already in use".to_string(),
+                },
+            ));
         }
-    };
+    }
 
-    Ok(JsonResponse::ok(ValidatePayload {
-        email: email_is_valid,
-        username: username_is_valid,
-    }))
+    Ok(StatusCode::NO_CONTENT)
 }
 
 macro_rules! ratelimit {

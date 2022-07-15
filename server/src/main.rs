@@ -26,6 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     database::connect().await?;
     database::migrate().await;
     auth::configure_hasher().await;
+    oauth::setup();
 
     let router = Router::new()
         .route("/api", get(|| async { (StatusCode::OK, "Hello, world!") }))

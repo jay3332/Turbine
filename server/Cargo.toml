@@ -14,6 +14,7 @@ check-if-email-exists = "0.8"
 chrono = "0.4.19"
 forwarded-header-value = "0.1"
 rand = "0.8.5"
+reqwest = { version = "0.11", features = ["rustls-tls"] }
 ring = "0.16.20"
 serde = "1.0.137"
 serde_repr = "0.1.8"
@@ -22,4 +23,3 @@ tokio = { version = "1.19.2", features = ["full"] }
 toml = "0.5.9"
 tower = { version = "0.4.13", features = ["buffer"] }
 tower-http = { version = "0.3.4", features = ["cors"] }
-reqwest = { version = "0.11", features = ["rustls-tls"] }

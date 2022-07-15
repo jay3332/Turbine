@@ -22,7 +22,7 @@ fn default_port() -> u16 {
     8081
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct GithubConfig {
     pub client_id: String,
     pub client_secret: String,

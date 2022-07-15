@@ -3,6 +3,7 @@ use crate::{
     json::Error,
     routes::JsonResponse,
 };
+
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
@@ -24,7 +25,7 @@ impl GithubRequestUserTokenPayload {
         Self {
             client_id: github_config.client_id.clone(),
             client_secret: github_config.client_secret.clone(),
-            code: code,
+            code,
         }
     }
 }
@@ -34,7 +35,7 @@ struct GithubUserTokenPayload {
     access_token: String,
 }
 
-pub async fn setup() {
+pub fn setup() {
     let client = Client::builder()
         .user_agent(concat!(
             env!("CARGO_PKG_NAME"),
@@ -42,7 +43,7 @@ pub async fn setup() {
             env!("CARGO_PKG_VERSION")
         ))
         .build()
-        .unwrap();
+        .expect("Could not build HTTP client");
 
     CLIENT
         .set(client)
@@ -59,18 +60,13 @@ pub async fn get_github_token(code: String) -> Result<String, JsonResponse<Error
     let resp = client
         .post("https://github.com/login/oauth/access_token")
         .header("Accept", "application/json")
-        .json::<GithubRequestUserTokenPayload>(&GithubRequestUserTokenPayload::from_code(code))
+        .json(&GithubRequestUserTokenPayload::from_code(code))
         .send()
-        .await
-        .map_err(|e| format!("Reqwest Error: {}", e))?;
+        .await?;
 
     if resp.status() != 200 {
-        return Err("Github returned non 200 status code".to_string().into());
+        return Err("GitHub returned non-200 status code".to_string().into());
     }
 
-    Ok(resp
-        .json::<GithubUserTokenPayload>()
-        .await
-        .map_err(|e| format!("Deserialize Error: {}", e))?
-        .access_token)
+    Ok(resp.json::<GithubUserTokenPayload>().await?.access_token)
 }

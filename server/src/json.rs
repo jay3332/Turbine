@@ -68,3 +68,20 @@ impl From<argon2_async::Error> for JsonResponse<Error> {
         )
     }
 }
+
+impl From<reqwest::Error> for JsonResponse<Error> {
+    fn from(err: reqwest::Error) -> Self {
+        let url = if let Some(url) = err.url() {
+            url.to_string()
+        } else {
+            "<unknown>".to_string()
+        };
+
+        Self(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Error {
+                message: format!("Error while requesting to {}: {:?}", url, err),
+            },
+        )
+    }
+}

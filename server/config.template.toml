@@ -11,3 +11,8 @@ port = 5432 # Defaults to 5432
 username = "postgres" # Defaults to postgres
 password = "..." # Database password, remove this if your database does not have one
 database = "turbine" # Defaults to turbine
+
+# Configuration variables for GitHub oauth details
+[github]
+client_id = "..." # Your client id
+client_secret = "..." # Your client secret
