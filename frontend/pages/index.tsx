@@ -57,6 +57,7 @@ const Description = styled.div`
   color: var(--color-text-secondary);
   font-weight: 500;
   font-size: 18px;
+  margin: 0 12px;
 `;
 
 const Buttons = styled.div`
@@ -187,6 +188,9 @@ const Home: NextPage = () => {
     <Container>
       <Head>
         <title>Turbine: Home</title>
+        <meta property="og:title" content="Turbine" />
+        <meta property="og:site_name" content="Turbine: Homepage" />
+        <meta property="og:description" content="A modern and open-source pastebin service." />
       </Head>
       <Banner>
         <TurbineText>Turbine</TurbineText>

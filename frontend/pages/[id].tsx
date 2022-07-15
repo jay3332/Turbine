@@ -28,7 +28,7 @@ export default function ViewPaste({ data }: { data: InboundPasteData }) {
       <Head>
         <title>{`Turbine: ${data.name}`}</title>
         <meta property="og:site_name" content="Turbine" />
-        <meta property="og:title" content={`${data.name}` + data.author_name ? ` by ${data.author_name}` : ''} />
+        <meta property="og:title" content={`${data.name}` + (data.author_name ? ` by ${data.author_name}` : '')} />
         {data.description && <meta property="og:description" content={data.description.substring(0, 64)} />}
       </Head>
       <PasteInterface data={data} />

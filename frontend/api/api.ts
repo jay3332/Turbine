@@ -16,7 +16,8 @@ export type RequestOptions = {
   json?: any,
 };
 
-export const BASE_API_URL: string = 'http://localhost:8081/api';
+// TODO: change this to turbine domain
+export const BASE_API_URL: string = 'https://pastebackend.bobobot.cf/api';
 
 export async function request<Response>(
   method: RequestMethod,

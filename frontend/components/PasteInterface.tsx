@@ -445,11 +445,14 @@ const LanguageEntry = styled.button`
   }
 `;
 
-const LanguageEntryColor = styled.div<{ color: string }>`
+const LanguageEntryColor = styled.div<{ color: string }>.attrs(props => ({
+  style: {
+    backgroundColor: props.color,
+  }
+}))`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: ${props => props.color};
 `;
 
 const LanguageEntryText = styled.div`
@@ -1101,17 +1104,20 @@ export function EditablePasteInterface({ callback, data }: PasteInterfaceProps) 
 
               element.type = 'file';
               element.multiple = true;
-              element.accept = 'text/*';
+              element.accept = '*';
 
               element.addEventListener('change', async (e: any) => {
-                let uploads = await Promise.all(Array.from(e.target.files, (file: File) => {
-                  return (async () => ({
+                let uploads = await Promise.all(Array.from(e.target.files, async (file: File) => {
+                  const content = await file.text();
+
+                  return {
                     ...defaultFile(),
                     filename: file.name,
-                    content: await file.text(),
-                    expanded: true,
+                    content,
+                    // only expand small files (files under 32 KB)
+                    expanded: byteLength(content) < 32_000,
                     _key: Date.now(),
-                  }))()
+                  }
                 }));
 
                 setFiles([ ...files, ...uploads ])
@@ -1125,10 +1131,6 @@ export function EditablePasteInterface({ callback, data }: PasteInterfaceProps) 
           </ActionButtonContainer>
           <ActionButtonContainer>
             <ActionButton ref={publishPasteRef} color="success-blend" hoverColor="success" onClick={async (e) => {
-              if (e.currentTarget != e.target) {
-                return;
-              }
-
               const target: HTMLButtonElement = e.currentTarget as HTMLButtonElement;
 
               target.disabled = true;

@@ -16,7 +16,9 @@ const InternalServerError: NextPage = () => {
   return (
     <Container>
       <Head>
-        <meta property="og:title" content="Turbine: 500 Internal Server Error" />
+        <meta property="og:site_name" content="Turbine" />
+        <meta property="og:title" content="500 Internal Server Error" />
+        <meta property="og:description" content="Turbine is a modern and open-source pastebin service." />
         <title>Turbine: Internal Server Error</title>
       </Head>
       <Main background={

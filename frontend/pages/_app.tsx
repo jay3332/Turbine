@@ -1,6 +1,7 @@
 import styled, { createGlobalStyle } from 'styled-components';
 import type { AppProps } from 'next/app'
 import NavBar from "../components/NavBar";
+import Footer from "../components/Footer";
 import Head from "next/head";
 import Modal from "react-modal";
 import { ToastContainer } from 'react-toastify';
@@ -67,13 +68,24 @@ const GlobalStyle = createGlobalStyle`
   code {
     font-family: var(--font-monospace);
   }
+  
+  html {
+    position: relative;
+    min-height: 100%;
+  }
 
   body {
     background-color: var(--color-bg-0);
     width: 100vw;
+    /* Leave room for the footer */
+    padding-bottom: 70px;
     margin: 0;
     /* There should be no horizontal overflow, if there is then it is probably a bug. */
     overflow-x: hidden;
+    
+    @media screen and (max-width: 767px) {
+      padding-bottom: 110px;
+    }
   }
 
   a {
@@ -190,10 +202,7 @@ export default function App({ Component, pageProps }: AppProps) {
         <GlobalStyle />
         <Head>
           <title>Turbine</title>
-          <meta property="og:title" content="Turbine" />
-          <meta property="og:site_name" content="Turbine" />
           <meta property="og:image" content="https://cdn.lambdabot.cf/uploads/turbine_logo.png" />
-          <meta property="og:description" content="A modern and open-source pastebin service." />
           <meta property="theme-color" content="#0d6aff" />
           <link rel="icon" type="image/png" href="https://cdn.lambdabot.cf/uploads/turbine_logo.png" />
         </Head>
@@ -210,6 +219,7 @@ export default function App({ Component, pageProps }: AppProps) {
           draggable
           pauseOnHover
         />
+        <Footer />
       </>
   )
 }

@@ -69,7 +69,9 @@ const NotFound: NextPage = () => {
   return (
     <>
       <Head>
-        <meta property="og:title" content="Turbine: 404 Not Found!" />
+        <meta property="og:site_name" content="Turbine" />
+        <meta property="og:title" content="404 Not Found!" />
+        <meta property="og:description" content="Turbine is a modern and open-source pastebin service." />
         <title>Turbine: Page Not Found</title>
       </Head>
       <Container>
