@@ -31,7 +31,7 @@ jobs:
     - name: Install latest nightly
       uses: actions-rs/toolchain@v1
       with:
-        toolchain: nightly-2022-06-24
+        toolchain: nightly
         override: true
     
     - run: rustc --version --verbose
