@@ -8,7 +8,7 @@ export enum RequestMethod {
   PATCH = "PATCH",
 }
 
-export type ApiResponse<T> = [ 400 | 401 | 403 | 404 | 409 | 500, { message: string } ] | [ number, T ];
+export type ApiResponse<T> = [ 400 | 401 | 403 | 404 | 409 | 500 | 502, { message: string } ] | [ number, T ];
 
 export type RequestOptions = {
   cookies?: Partial<{ [key: string]: string; }>,
@@ -42,11 +42,21 @@ export async function request<Response>(
     }
   }
 
-  const response = await fetch(BASE_API_URL + route, {
-    method,
-    headers,
-    body: JSON.stringify(json),
-  });
+  let response;
+
+  try {
+    response = await fetch(BASE_API_URL + route, {
+      method,
+      headers,
+      body: JSON.stringify(json),
+    });
+  } catch (exc) {
+    if (!(exc instanceof DOMException)) {
+      throw exc;
+    }
+
+    return [502, { message: `Networking error (${exc.name}): ${exc.message}` }];
+  }
 
   if (response.headers.get("content-type") === "application/json") {
     const [ status, data ] = [ response.status, await response.json() ];

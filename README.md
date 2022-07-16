@@ -25,14 +25,15 @@ have many of these features inspired by GitHub Gist while still maintaining a cl
 - User accounts
 - Automatic (and manually selected) code highlighting
 - Theme and font customization
+- Paste stars
 
 ### TODO:
 - Drafts
-- Ratelimiting
 - Expiring pastes
-- Store paste creation dates
-- Store paste view counts
-- Paste "stars", like GitHub repository stars
+- Paste editing and edit history
+
+#### Low priority:
+- Code evaluation
 
 ## Contributing
 If you'd like to contribute to Turbine, make sure you meet the following requirements:
