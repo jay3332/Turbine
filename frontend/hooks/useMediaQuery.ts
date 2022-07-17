@@ -14,14 +14,24 @@ const useMediaQuery = (width: number) => {
 
   useEffect(() => {
     const media = window.matchMedia(`(max-width: ${width}px)`);
-    media.addEventListener("change", updateTarget);
+    if (media?.addEventListener) {
+      media.addEventListener("change", updateTarget);
+    } else {
+      media.addListener(updateTarget);
+    }
 
     // Check on mount (callback is not called until a change occurs)
     if (media.matches) {
       setTargetReached(true);
     }
 
-    return () => media.removeEventListener("change", updateTarget);
+    return () => {
+      if (media?.removeEventListener) {
+        media.removeEventListener("change", updateTarget);
+      } else {
+        media.removeListener(updateTarget);
+      }
+    };
   }, []);
 
   return targetReached;
