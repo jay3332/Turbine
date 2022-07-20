@@ -4,11 +4,27 @@ This directory contains the source of Terbium's backend server and REST API.
 ## REST API Documentation
 Integrate Turbine into your own application by using the Turbine's REST API.
 
+### Note
+Turbine is an unfinished project, and so is this documentation and the backend server itself.
+Many endpoints are subject to change!
+
 ### Official Base URI
 Prefix all endpoints with the official backend URI: **https://pastebackend.bobobot.cf/api**
 
+⚠️ **This is guaranteed to change in the future.**
+
 ### Table of Contents
 - [Miscellaneous Endpoints](#miscellaneous-endpoints)
+  - [Ping the Server](#ping-the-server)
+- [Paste Endpoints](#paste-endpoints)
+  - [Get Paste](#get-paste)
+  - [Create Paste](#create-paste)
+  - [Delete Paste](#delete-paste)
+- [Using Authorization](#using-authorization)
+- [JSON Object Schemas](#json-object-schemas)
+  - [File Object](#file-object)
+  - [Paste Object](#paste-object)
+  - [Paste Visibility](#paste-visibility-enumeration)
 
 ### Miscellaneous Endpoints
 
