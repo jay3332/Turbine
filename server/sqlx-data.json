@@ -160,6 +160,18 @@
     },
     "query": "\n        SELECT\n            pastes.*,\n            u.username AS \"username?\",\n            (SELECT COUNT(*) FROM stars WHERE paste_id = pastes.id) AS stars\n        FROM\n            pastes\n        LEFT JOIN LATERAL (\n            SELECT username FROM users WHERE users.id = pastes.author_id\n        ) AS u ON username IS NOT NULL\n        WHERE\n            id = $1\n    "
   },
+  "50293c2e54af11d4c2a553e29b671cef087a159c6ee7182d8ca929ecb748f3b7": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "DELETE FROM users WHERE id = $1"
+  },
   "5352ed0a258472751157a85b8f40d96ac3099dd96c54c4167cacc0e3539aba7e": {
     "describe": {
       "columns": [
@@ -376,6 +388,26 @@
     },
     "query": "SELECT email FROM users WHERE email = $1"
   },
+  "92c4c82b3dcff8650d0202551208abf06de8ccf48b5683c108ea83045b5923c6": {
+    "describe": {
+      "columns": [
+        {
+          "name": "author_id",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT author_id FROM pastes WHERE id = $1"
+  },
   "b3de938995c744adfb9171880990e92f295faf8618cf0f5650d91c9067be6821": {
     "describe": {
       "columns": [
@@ -401,6 +433,38 @@
       }
     },
     "query": "SELECT id, password FROM users WHERE email = $1"
+  },
+  "c145ac9ec1b9f2799bda19e4b0b4484acae014ba45e408ea5fa72a3542e68a5f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "user_id",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "username!",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 2,
+          "type_info": "Timestamptz"
+        }
+      ],
+      "nullable": [
+        false,
+        null,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        SELECT\n            user_id,\n            (SELECT username FROM users WHERE users.id = user_id) AS \"username!\",\n            created_at\n        FROM\n            stars\n        WHERE\n            paste_id = $1\n    "
   },
   "d884fcbfadda026ccaef127244f67218e749df0b3fe694e27232e84f1f1d4638": {
     "describe": {
@@ -458,6 +522,18 @@
       }
     },
     "query": "SELECT COUNT(*) AS count FROM stars WHERE paste_id = $1"
+  },
+  "e3b33823d9beed045650601eeb263ea87a6304585f46977344933b840708676d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "DELETE FROM pastes WHERE id = $1"
   },
   "ff04920d95bdd46d50b8a0d95824669dcab961c43b09b2aabd89848ca1dbd2e9": {
     "describe": {
