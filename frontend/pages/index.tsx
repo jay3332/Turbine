@@ -94,24 +94,6 @@ const Hint = styled.div`
   }
 `;
 
-const Bump = keyframes`
-  from {
-    transform: translateY(0px);
-  }
-  to {
-    transform: translateY(-5px);
-  }
-`;
-
-const Unbump = keyframes`
-  from {
-    transform: translateY(-5px);
-  }
-  to {
-    transform: translateY(0px);
-  }
-`;
-
 const BaseButton = styled.button`
   display: flex;
   align-items: center;
@@ -124,7 +106,6 @@ const BaseButton = styled.button`
   font-weight: 600;
   user-select: none;
   cursor: pointer;
-  animation: ${Unbump} 0.3s ease-in-out;
   
   img {
     margin: 6px 8px 6px 4px;
@@ -133,7 +114,6 @@ const BaseButton = styled.button`
   }
   
   &:hover {
-    animation: ${Bump} 0.3s ease-in-out;
     transform: translateY(-5px);
   }
 `;

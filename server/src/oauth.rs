@@ -1,8 +1,4 @@
-use crate::{
-    config::get_config,
-    json::Error,
-    routes::JsonResponse,
-};
+use crate::{config::get_config, json::Error, routes::JsonResponse};
 
 use reqwest::Client;
 use serde::{Deserialize, Serialize};

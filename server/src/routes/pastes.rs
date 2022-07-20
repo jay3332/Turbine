@@ -358,6 +358,42 @@ pub async fn post_paste(
     Ok(JsonResponse(StatusCode::CREATED, PasteResponse { id }))
 }
 
+/// DELETE /pastes/:id
+pub async fn delete_paste(
+    Authorization(user_id): Authorization,
+    Path(id): Path<String>,
+) -> Result<StatusCode, JsonResponse<Error>> {
+    let db = get_pool();
+
+    let author_id = sqlx::query!("SELECT author_id FROM pastes WHERE id = $1", id)
+        .fetch_optional(db)
+        .await?
+        .ok_or_else(|| {
+            JsonResponse(
+                StatusCode::NOT_FOUND,
+                Error {
+                    message: "Paste not found".to_string(),
+                },
+            )
+        })?
+        .author_id;
+
+    if author_id != Some(user_id) {
+        return Err(JsonResponse(
+            StatusCode::FORBIDDEN,
+            Error {
+                message: "You do not have permission to delete this paste".to_string(),
+            },
+        ));
+    }
+
+    sqlx::query!("DELETE FROM pastes WHERE id = $1", id)
+        .execute(db)
+        .await?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
 macro_rules! ratelimit {
     ($rate:expr, $per:expr) => {{
         ServiceBuilder::new()
@@ -376,6 +412,9 @@ macro_rules! ratelimit {
 
 pub fn router() -> Router {
     Router::new()
-        .route("/pastes/:id", get(get_paste.layer(ratelimit!(10, 15))))
+        .route(
+            "/pastes/:id",
+            get(get_paste.layer(ratelimit!(10, 15))).delete(delete_paste.layer(ratelimit!(3, 6))),
+        )
         .route("/pastes", post(post_paste.layer(ratelimit!(2, 5))))
 }

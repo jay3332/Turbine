@@ -10,10 +10,10 @@ use crate::{
 use argon2_async::{hash, verify};
 use axum::{
     error_handling::HandleErrorLayer,
-    extract::{Json, Path, Query},
+    extract::{Json, Path},
     handler::Handler,
     http::StatusCode,
-    routing::{get, post, put},
+    routing::{get, post, MethodFilter},
     Router,
 };
 use check_if_email_exists::{check_email, CheckEmailInput, Reachable};
@@ -63,9 +63,11 @@ pub struct PutStarResponse {
     pub deleted: bool,
 }
 
-#[derive(Clone, Deserialize)]
-pub struct ListStarsQuery {
-    pub user_id: Option<String>,
+#[derive(Clone, Serialize)]
+pub struct PasteStarEntry {
+    pub user_id: String,
+    pub username: String,
+    pub starred_at: i64,
 }
 
 #[derive(Clone, Deserialize)]
@@ -104,6 +106,13 @@ pub async fn get_user(
         ),
         created_at: user.created_at.timestamp(),
     }))
+}
+
+/// GET /users/me
+pub async fn get_self(
+    Authorization(user_id): Authorization,
+) -> Result<JsonResponse<User>, JsonResponse<Error>> {
+    get_user(Some(Authorization(user_id.clone())), Path(user_id)).await
 }
 
 /// POST /users
@@ -274,6 +283,19 @@ pub async fn login(
     Ok(JsonResponse::ok(LoginResponse { id, token }))
 }
 
+/// DELETE /users/me
+pub async fn delete_user(
+    Authorization(user_id): Authorization,
+) -> Result<StatusCode, JsonResponse<Error>> {
+    let db = get_pool();
+
+    sqlx::query!("DELETE FROM users WHERE id = $1", user_id)
+        .execute(db)
+        .await?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
 fn into_sanitized_paste(
     PastePreview {
         id,
@@ -319,23 +341,11 @@ pub fn sanitize_paste(auth: &Option<Authorization>, preview: PastePreview) -> Pa
     into_sanitized_paste(preview)
 }
 
-pub async fn list_stars(
+/// GET /users/:user_id/stars
+pub async fn list_user_stars(
     auth: Option<Authorization>,
-    Query(ListStarsQuery { user_id }): Query<ListStarsQuery>,
+    Path(user_id): Path<String>,
 ) -> Result<JsonResponse<Vec<PastePreview>>, JsonResponse<Error>> {
-    let user_id = if let Some(user_id) = user_id {
-        user_id
-    } else if let Some(Authorization(ref id)) = auth {
-        id.clone()
-    } else {
-        return Err(JsonResponse(
-            StatusCode::UNAUTHORIZED,
-            Error {
-                message: "You must be logged in first to view your stars".to_string(),
-            },
-        ));
-    };
-
     let db = get_pool();
 
     let stars = sqlx::query!(
@@ -389,6 +399,52 @@ pub async fn list_stars(
     ))
 }
 
+/// GET /users/me/stars
+pub async fn list_self_stars(
+    auth: Authorization,
+) -> Result<JsonResponse<Vec<PastePreview>>, JsonResponse<Error>> {
+    list_user_stars(Some(auth.clone()), Path(auth.0)).await
+}
+
+/// GET /pastes/:paste_id/stars
+pub async fn get_paste_stars(
+    Path(id): Path<String>,
+) -> Result<JsonResponse<Vec<PasteStarEntry>>, JsonResponse<Error>> {
+    let db = get_pool();
+
+    let users = sqlx::query!(
+        r#"
+        SELECT
+            user_id,
+            (SELECT username FROM users WHERE users.id = user_id) AS "username!",
+            created_at
+        FROM
+            stars
+        WHERE
+            paste_id = $1
+    "#,
+        id,
+    )
+    .fetch_all(db)
+    .await?;
+
+    Ok(JsonResponse::ok(
+        users
+            .into_iter()
+            .map(|record| PasteStarEntry {
+                user_id: record.user_id,
+                username: record.username,
+                starred_at: record.created_at.timestamp(),
+            })
+            .collect(),
+    ))
+}
+
+/// PUT /pastes/:paste_id/stars
+/// DELETE /pastes/:paste_id/stars
+///
+/// # Note
+/// The received verb does not matter, this simply acts as a toggle.
 pub async fn put_star(
     Authorization(user_id): Authorization,
     Path(paste_id): Path<String>,
@@ -443,6 +499,7 @@ pub async fn put_star(
     }))
 }
 
+/// POST /users/validate
 pub async fn validate(
     Json(ValidationPayload { email, username }): Json<ValidationPayload>,
 ) -> Result<StatusCode, JsonResponse<Error>> {
@@ -499,9 +556,27 @@ macro_rules! ratelimit {
 
 pub fn router() -> Router {
     Router::new()
+        .route("/users/validate", post(validate.layer(ratelimit!(6, 6))))
+        .route(
+            "/users/me/stars",
+            get(list_self_stars.layer(ratelimit!(5, 5))),
+        )
+        .route(
+            "/users/me",
+            get(get_self.layer(ratelimit!(5, 5))).delete(delete_user.layer(ratelimit!(2, 10))),
+        )
+        .route(
+            "/users/:id/stars",
+            get(list_user_stars.layer(ratelimit!(5, 5))),
+        )
         .route("/users/:id", get(get_user.layer(ratelimit!(5, 5))))
         .route("/users", post(create_user.layer(ratelimit!(5, 30))))
-        .route("/stars/:id", put(put_star.layer(ratelimit!(5, 7))))
-        .route("/stars", get(list_stars.layer(ratelimit!(5, 5))))
+        .route(
+            "/pastes/:id/stars",
+            get(get_paste_stars.layer(ratelimit!(5, 5))).on(
+                MethodFilter::PUT | MethodFilter::DELETE,
+                put_star.layer(ratelimit!(5, 7)),
+            ),
+        )
         .route("/login", post(login.layer(ratelimit!(2, 8))))
 }
