@@ -1,5 +1,5 @@
 import dynamic from "next/dynamic";
-import Image from 'next/future/image';
+import NextImage from 'next/future/image';
 import { useRouter } from "next/router";
 import styled from 'styled-components'
 import {type FormEvent, useEffect, useRef, useState} from "react";
@@ -235,6 +235,14 @@ const FileConfigRow = styled.div`
   }
 `;
 
+const ImageInfoRow = styled.div`
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 6px;
+  align-items: center;
+`;
+
 const FileConfigLabel = styled.label`
   font-weight: 700;
   font-size: 16px;
@@ -272,7 +280,7 @@ const BaseEditor = styled(AceEditor)`
   }
 `;
 
-const ArrowImage = styled(Image)`
+const ArrowImage = styled(NextImage)`
   filter: var(--color-text-filter);
   width: 14px;
   height: 14px;
@@ -351,6 +359,21 @@ const LanguageSelect = styled.button`
   
   &:hover {
     transform: translateY(-2px);
+  }
+`;
+
+const ImageView = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px;
+  
+  img {
+    max-width: 60vw;
+    height: auto;
   }
 `;
 
@@ -479,7 +502,7 @@ const ActionButtonContainer = styled.div`
   margin-left: 12px;
 `;
 
-const ActionButtonImage = styled(Image)`
+const ActionButtonImage = styled(NextImage)`
   width: 16px;
   height: 16px;
   margin-right: 8px;
@@ -561,7 +584,7 @@ const FileActionButtons = styled.div`
   margin-right: 8px;
 `;
 
-const FileActionButton = styled(Image)`
+const FileActionButton = styled(NextImage)`
   cursor: pointer;
   width: 18px;
   height: 18px;
@@ -576,7 +599,7 @@ const FileActionButton = styled(Image)`
   }
 `;
 
-const DeleteFileButton = styled(Image)`
+const DeleteFileButton = styled(NextImage)`
   cursor: pointer;
   filter: var(--color-error-filter);
   width: 18px;
@@ -604,6 +627,16 @@ const FileSize = styled.div`
   @media screen and (max-width: 900px) {
     display: none;
   }
+`
+
+const ImageFileSize = styled.div`
+  user-select: none;
+  font-weight: 700;
+  opacity: 0.4;
+  font-size: 16px;
+  flex-grow: 1;
+  text-align: left;
+  margin-left: 6px;
 `
 
 export interface EditorProps {
@@ -728,6 +761,12 @@ interface IntermediateFile {
   language?: string;
   expanded: boolean,
   options: EditorOptions;
+  imageData?: {
+    mimeType: string,
+    url: string,
+    width?: number,
+    height?: number,
+  },
   _key: number;
 }
 
@@ -804,6 +843,24 @@ function byteLength(str: string) {
   return s;
 }
 
+const MIME_TYPES: { [key: string]: string } = {
+  'png': 'image/png',
+  'jpg': 'image/jpeg',
+  'jpeg': 'image/jpeg',
+  'gif': 'image/gif',
+  'webp': 'image/webp',
+};
+
+function getMimeType(filename: string): string | undefined {
+  let ext = filename.split('.').pop();
+  if (ext == null) {
+    return;
+  }
+
+  ext = ext.toLowerCase();
+  return MIME_TYPES[ext];
+}
+
 export function ReadOnlyPasteInterface({ data }: { data: InboundPasteData }) {
   const [ expanded, setExpanded ] = useState<number[]>(Object.keys(data.files).map(parseInt));
   const router = useRouter();
@@ -827,6 +884,12 @@ export function ReadOnlyPasteInterface({ data }: { data: InboundPasteData }) {
       <ReadOnlyDescription>{data.description}</ReadOnlyDescription>
       {data.files.map((file, i) => {
         const isExpanded = expanded.includes(i);
+        const mimeType = getMimeType(file.filename);
+
+        let blob: Blob | undefined = undefined;
+        if (mimeType != null) {
+          blob = new Blob([file.content], { type: mimeType });
+        }
 
         return (
           <File focused={false} key={i}>
@@ -841,22 +904,40 @@ export function ReadOnlyPasteInterface({ data }: { data: InboundPasteData }) {
                 <FileActionButtons>
                   <FileActionButton
                     src={CopyIcon}
-                    alt="Copy Contents"
-                    onClick={async () => {
-                      await navigator.clipboard.writeText(file.content);
-                      toast.success('Copied to clipboard!');
-                    }}
+                    alt={mimeType ? "Copy Image" : "Copy Contents"}
+                    onClick={mimeType ? (
+                      async () => {
+                        await navigator.clipboard.write([
+                          new ClipboardItem({
+                            [mimeType]: blob!,
+                          })
+                        ]);
+                        toast.success('Copied image to clipboard!');
+                      }
+                    ) : (
+                      async () => {
+                        await navigator.clipboard.writeText(file.content);
+                        toast.success('Copied to clipboard!');
+                      }
+                    )}
                   />
                 </FileActionButtons>
               </FilenameInputRow>
             </ReadOnlyFileHeader>
             {isExpanded && (
-              <Editor
-                filename={file.filename}
-                language={file.language}
-                value={file.content}
-                readOnly
-              />
+              mimeType ? (
+                <ImageView>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={URL.createObjectURL(blob!)} alt={file.filename} />
+                </ImageView>
+              ) : (
+                <Editor
+                  filename={file.filename}
+                  language={file.language}
+                  value={file.content}
+                  readOnly
+                />
+              )
             )}
           </File>
         )
@@ -984,109 +1065,124 @@ export function EditablePasteInterface({ callback, data }: PasteInterfaceProps) 
             target.style.height = target.scrollHeight + 6 + "px"
           }}
         />
-        {files.map(({ filename, content, language, expanded, options, _key }, i) => (
-          <File focused={i === focused} key={`file:${i}:${_key}`}>
-            <FileHeader>
-              <ArrowImage
-                src={expanded ? AngleDownIcon : AngleRightIcon}
-                alt="Expand"
-                // Boilerplate due to how useState works
-                onClick={() => {
-                  let f = [...files];
-                  f[i].expanded = !expanded;
-                  if (focused === i) {
-                    setFocused(undefined);
-                  }
-                  setFiles(f);
-                }}
-              />
-              <FileConfig>
-                <FilenameInputRow>
-                  <FilenameInput placeholder="Enter filename..." defaultValue={filename} onChange={e => {
-                    files[i].filename = e.target.value;
-                    setFiles(files);
-                  }} />
-                  <DeleteFileButton src={TrashIcon} alt="Delete File" onClick={() => {
+        {files.map(({ filename, content, language, expanded, options, imageData, _key }, i) => {
+          return (
+            <File focused={i === focused} key={`file:${i}:${_key}`}>
+              <FileHeader>
+                <ArrowImage
+                  src={expanded ? AngleDownIcon : AngleRightIcon}
+                  alt="Expand"
+                  // Boilerplate due to how useState works
+                  onClick={() => {
                     let f = [...files];
-
-                    f.splice(i, 1);
-                    setFiles(f);
-
+                    f[i].expanded = !expanded;
                     if (focused === i) {
                       setFocused(undefined);
                     }
-                  }} />
-                </FilenameInputRow>
-                {expanded && (
-                  <FileConfigRow>
-                    <FileConfigLabel>
-                      Tab Size
-                    </FileConfigLabel>
-                    <TabSizeInput
-                      type="number"
-                      min={1}
-                      max={8}
-                      maxLength={1}
-                      defaultValue={options.tabSize}
-                      step={1}
-                      onChange={e => {
-                        // @ts-ignore
-                        e.target.value = Math.max(1, Math.min(8, e.target.value.at(-1) ?? 4));
-                        files[i].options.tabSize = parseInt(e.target.value);
-                      }}
-                    />
-                    <SoftTabsButton isSoft={options.useSoftTabs} onClick={() => {
+                    setFiles(f);
+                  }}
+                />
+                <FileConfig>
+                  <FilenameInputRow>
+                    <FilenameInput placeholder="Enter filename..." defaultValue={filename} onChange={e => {
+                      files[i].filename = e.target.value;
+                      setFiles(files);
+                    }} />
+                    <DeleteFileButton src={TrashIcon} alt="Delete File" onClick={() => {
                       let f = [...files];
 
-                      f[i].options.useSoftTabs = !options.useSoftTabs;
+                      f.splice(i, 1);
                       setFiles(f);
-                    }}>
-                      {options.useSoftTabs ? 'Using Soft Tabs' : 'Using Hard Tabs'}
-                    </SoftTabsButton>
-                    <WrapButton setting={options.wrap} onClick={() => {
-                      let f = [...files];
 
-                      f[i].options.wrap = (++options.wrap % 3) as (0 | 1 | 2);
-                      setFiles(f);
-                    }}>
-                      {[
-                        'Wrap: Auto',
-                        'Wrap: On',
-                        'Wrap: Off',
-                      ][options.wrap]}
-                    </WrapButton>
-                    <LanguageSelect onClick={() => {
-                      setLanguageModalIndex(i);
-                    }}>
-                      Language: {language ?? 'Auto'}
-                    </LanguageSelect>
-                    <FileSize>
-                      {humanizeSize(byteLength(content))}
-                    </FileSize>
-                  </FileConfigRow>
-                )}
-              </FileConfig>
-            </FileHeader>
-            {expanded && (
-              <Editor
-                value={content}
-                filename={filename}
-                language={language}
-                onFocus={() => setFocused(i)}
-                onBlur={() => {
-                  if (focused === i) {
-                    setFocused(undefined);
-                  }
-                }}
-                onChange={value => {
-                  files[i].content = value;
-                  setFiles(files);
-                }}
-                options={options}
-              />
-            )}
-          </File>
-        ))}
+                      if (focused === i) {
+                        setFocused(undefined);
+                      }
+                    }} />
+                  </FilenameInputRow>
+                  {expanded && (imageData ? (
+                    <ImageInfoRow>
+                      <ImageFileSize>
+                        {`${imageData.width}x${imageData.height}, ${humanizeSize(byteLength(content))} (${imageData.mimeType})`}
+                      </ImageFileSize>
+                    </ImageInfoRow>
+                  ) : (
+                    <FileConfigRow>
+                      <FileConfigLabel>
+                        Tab Size
+                      </FileConfigLabel>
+                      <TabSizeInput
+                        type="number"
+                        min={1}
+                        max={8}
+                        maxLength={1}
+                        defaultValue={options.tabSize}
+                        step={1}
+                        onChange={e => {
+                          // @ts-ignore
+                          e.target.value = Math.max(1, Math.min(8, e.target.value.at(-1) ?? 4));
+                          files[i].options.tabSize = parseInt(e.target.value);
+                        }}
+                      />
+                      <SoftTabsButton isSoft={options.useSoftTabs} onClick={() => {
+                        let f = [...files];
+
+                        f[i].options.useSoftTabs = !options.useSoftTabs;
+                        setFiles(f);
+                      }}>
+                        {options.useSoftTabs ? 'Using Soft Tabs' : 'Using Hard Tabs'}
+                      </SoftTabsButton>
+                      <WrapButton setting={options.wrap} onClick={() => {
+                        let f = [...files];
+
+                        f[i].options.wrap = (++options.wrap % 3) as (0 | 1 | 2);
+                        setFiles(f);
+                      }}>
+                        {[
+                          'Wrap: Auto',
+                          'Wrap: On',
+                          'Wrap: Off',
+                        ][options.wrap]}
+                      </WrapButton>
+                      <LanguageSelect onClick={() => {
+                        setLanguageModalIndex(i);
+                      }}>
+                        Language: {language ?? 'Auto'}
+                      </LanguageSelect>
+                      <FileSize>
+                        {humanizeSize(byteLength(content))}
+                      </FileSize>
+                    </FileConfigRow>
+                  ))}
+                </FileConfig>
+              </FileHeader>
+              {expanded && (
+                imageData ? (
+                  <ImageView>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imageData!.url} alt={filename} />
+                  </ImageView>
+                ) : (
+                  <Editor
+                    value={content}
+                    filename={filename}
+                    language={language}
+                    onFocus={() => setFocused(i)}
+                    onBlur={() => {
+                      if (focused === i) {
+                        setFocused(undefined);
+                      }
+                    }}
+                    onChange={value => {
+                      files[i].content = value;
+                      setFiles(files);
+                    }}
+                    options={options}
+                  />
+                )
+              )}
+            </File>
+          )
+        })}
         <ActionButtons>
           <ActionButtonContainer>
             <ActionButton color="primary" hoverColor="primary-blend" onClick={() => {
@@ -1109,15 +1205,38 @@ export function EditablePasteInterface({ callback, data }: PasteInterfaceProps) 
               element.addEventListener('change', async (e: any) => {
                 let uploads = await Promise.all(Array.from(e.target.files, async (file: File) => {
                   const content = await file.text();
+                  const mimeType = getMimeType(file.name);
+                  const url = mimeType && URL.createObjectURL(file);
+                  let width: number | undefined = undefined;
+                  let height: number | undefined = undefined;
 
-                  return {
+                  let result = {
                     ...defaultFile(),
                     filename: file.name,
                     content,
                     // only expand small files (files under 32 KB)
                     expanded: byteLength(content) < 32_000,
+                    imageData: mimeType != null ? {
+                      mimeType: mimeType!,
+                      url: url!,
+                      width: width!,
+                      height: height!,
+                    } : undefined,
                     _key: Date.now(),
+                  };
+
+                  if (url) {
+                    let img = new Image();
+                    img.src = url;
+                    img.addEventListener('load', (e) => {
+                      // @ts-ignore
+                      result.imageData!.width = e.target.naturalWidth;
+                      // @ts-ignore
+                      result.imageData!.height = e.target.naturalHeight;
+                    })
                   }
+
+                  return result;
                 }));
 
                 setFiles([ ...files, ...uploads ])
