@@ -55,6 +55,7 @@ pub struct Paste {
     pub created_at: i64,
     pub views: u32,
     pub stars: u32,
+    pub starred: Option<bool>,
 }
 
 #[derive(Debug, Serialize)]
@@ -105,7 +106,8 @@ pub async fn get_paste(
         SELECT
             pastes.*,
             u.username AS "username?",
-            (SELECT COUNT(*) FROM stars WHERE paste_id = pastes.id) AS stars
+            (SELECT COUNT(*) FROM stars WHERE paste_id = pastes.id) AS stars,
+            EXISTS(SELECT 1 FROM stars WHERE paste_id = pastes.id AND user_id = $2) AS starred
         FROM
             pastes
         LEFT JOIN LATERAL (
@@ -114,7 +116,8 @@ pub async fn get_paste(
         WHERE
             id = $1
     "#,
-        id
+        id,
+        auth.as_ref().map(|Authorization(a)| a)
     )
     .fetch_optional(db)
     .await?
@@ -204,6 +207,7 @@ pub async fn get_paste(
         files,
         created_at: paste.created_at.timestamp(),
         stars: paste.stars.unwrap_or(0) as u32,
+        starred: auth.and_then(|_| paste.starred),
         views: views as u32,
     }))
 }

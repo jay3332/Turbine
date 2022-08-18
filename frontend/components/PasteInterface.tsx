@@ -16,6 +16,10 @@ import UploadIcon from '../public/icon-upload.svg'
 import PublishIcon from '../public/icon-publish.svg'
 import CopyIcon from '../public/icon-copy.svg'
 import NewFileIcon from '../public/icon-new-file.svg'
+import EyeIcon from '../public/icon-eye.svg'
+import StarIcon from '../public/icon-star.svg'
+import StarHollowIcon from '../public/icon-star-hollow.svg'
+import {toggleStar} from "../api/api";
 
 const AceEditor = dynamic(async () => {
   const reactAce = await import("react-ace");
@@ -36,6 +40,7 @@ const AceEditor = dynamic(async () => {
 })
 
 export interface InboundPasteData {
+  id: string;
   name: string;
   description: string;
   files: {
@@ -49,6 +54,7 @@ export interface InboundPasteData {
   created_at: number,
   views: number,
   stars: number,
+  starred?: boolean,
 }
 
 export interface OutboundPasteData {
@@ -79,6 +85,89 @@ const Container = styled.div`
   
   @media screen and (max-width: 767px) {
     margin: 14px 16px;
+  }
+`;
+
+const ReadOnlyHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+`;
+
+const ViewCount = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+`;
+
+const ViewCountIcon = styled(NextImage)`
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  user-select: none;
+  filter: var(--color-text-filter);
+  opacity: 0.5;
+`;
+
+const ViewCountNumber = styled.span`
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  font-weight: 500;
+`;
+
+const StarIconImage = styled(NextImage)<{ starred: boolean }>`
+  width: 18px;
+  height: 18px;
+  user-select: none;
+  filter: ${props => props.starred ? 'var(--color-text-filter)' : 'var(--color-star-filter)'};
+  margin-right: 6px;
+  transition: all 0.3s ease-in-out;
+`;
+
+const StarText = styled.span<{ starred: boolean }>`
+  color: ${props => props.starred ? 'var(--color-text)' : 'var(--color-star)'};
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s ease-in-out;
+`;
+
+const StarCount = styled.div<{ starred: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  padding: 3px 4px;
+  margin-left: 6px;
+  border-radius: 3px;
+  background-color: ${props => props.starred ? 'var(--color-star-background)' : 'var(--color-bg-3)'};
+  transition: all 0.3s ease-in-out;
+`;
+
+const StarButton = styled.button<{ starred: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 6px;
+  border: 2px solid var(--color-star);
+  border-radius: 4px;
+  background-color: ${props => props.starred ? 'var(--color-star)' : 'transparent'};
+  transition: all 0.3s ease-in-out;
+  user-select: none;
+  cursor: pointer;
+  margin-top: 6px;
+  
+  &:hover {
+    background-color: ${props => props.starred ? 'transparent' : 'var(--color-star-background)'};
+    
+    ${StarIconImage} {
+      filter: ${props => props.starred ? 'var(--color-star-filter)' : 'var(--color-text-filter)'};
+    }
+    
+    ${StarText} {
+      color: ${props => props.starred ? 'var(--color-star)' : 'var(--color-text)'};
+    }
   }
 `;
 
@@ -863,7 +952,13 @@ function getMimeType(filename: string): string | undefined {
 
 export function ReadOnlyPasteInterface({ data }: { data: InboundPasteData }) {
   const [ expanded, setExpanded ] = useState<number[]>(Object.keys(data.files).map(parseInt));
+  const [ starred, setStarred ] = useState<boolean>();
+  const [ starCount, setStarCount ] = useState<number>(data.stars);
   const router = useRouter();
+
+  useEffect(() => {
+    setStarred(data.starred);
+  }, [data]);
 
   useEffect(() => {
     document.addEventListener('keydown', async (e) => {
@@ -876,12 +971,37 @@ export function ReadOnlyPasteInterface({ data }: { data: InboundPasteData }) {
 
   return (
     <Container>
-      <ReadOnlyTitle>{data.name}</ReadOnlyTitle>
-      <PasteInfo>
-        {data.author_name && `${data.author_name} \u2014 `}
-        Created {humanizeDuration(Date.now() / 1000 - data.created_at)} ago
-      </PasteInfo>
-      <ReadOnlyDescription>{data.description}</ReadOnlyDescription>
+      <ReadOnlyHeader>
+        <div>
+          <ReadOnlyTitle>{data.name}</ReadOnlyTitle>
+          <PasteInfo>
+            {data.author_name && `${data.author_name} \u2014 `}
+            Created {humanizeDuration(Date.now() / 1000 - data.created_at)} ago
+          </PasteInfo>
+          <ReadOnlyDescription>{data.description}</ReadOnlyDescription>
+        </div>
+        <div>
+          <ViewCount>
+            <ViewCountIcon src={EyeIcon} alt="Views" />
+            <ViewCountNumber>{data.views.toLocaleString()}</ViewCountNumber>
+          </ViewCount>
+          <StarButton starred={starred ?? false} onClick={async () => {
+            let compound = await toggleStar(data.id);
+
+            // This way, the types are bound together, and we can use a type-guard to reduce the types
+            if (compound[0] === 200) {
+              let [_, response] = compound;
+
+              setStarred(!response.deleted);
+              setStarCount(response.stars);
+            }
+          }}>
+            <StarIconImage starred={starred ?? false} src={starred ? StarIcon : StarHollowIcon} alt="Star" />
+            <StarText starred={starred ?? false}>{starred ? "Unstar" : "Star"}</StarText>
+            <StarCount starred={starred ?? false}>{starCount.toLocaleString()}</StarCount>
+          </StarButton>
+        </div>
+      </ReadOnlyHeader>
       {data.files.map((file, i) => {
         const isExpanded = expanded.includes(i);
         const mimeType = getMimeType(file.filename);
@@ -1214,8 +1334,8 @@ export function EditablePasteInterface({ callback, data }: PasteInterfaceProps) 
                     ...defaultFile(),
                     filename: file.name,
                     content,
-                    // only expand small files (files under 32 KB)
-                    expanded: byteLength(content) < 32_000,
+                    // only expand small files (files under 32 KB), or images
+                    expanded: mimeType != null || byteLength(content) < 32_000,
                     imageData: mimeType != null ? {
                       mimeType: mimeType!,
                       url: url!,

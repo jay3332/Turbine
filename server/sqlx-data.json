@@ -86,80 +86,6 @@
     },
     "query": "SELECT id FROM users WHERE email = $1"
   },
-  "4677a9ff82aaa509e02b013727470967e6a71e850a2a28399c1321d5055c0f9f": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "author_id",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "name",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "description",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "visibility",
-          "ordinal": 4,
-          "type_info": "Int2"
-        },
-        {
-          "name": "password",
-          "ordinal": 5,
-          "type_info": "Text"
-        },
-        {
-          "name": "views",
-          "ordinal": 6,
-          "type_info": "Int4"
-        },
-        {
-          "name": "created_at",
-          "ordinal": 7,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "username?",
-          "ordinal": 8,
-          "type_info": "Text"
-        },
-        {
-          "name": "stars",
-          "ordinal": 9,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false,
-        true,
-        false,
-        true,
-        false,
-        true,
-        false,
-        false,
-        false,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "\n        SELECT\n            pastes.*,\n            u.username AS \"username?\",\n            (SELECT COUNT(*) FROM stars WHERE paste_id = pastes.id) AS stars\n        FROM\n            pastes\n        LEFT JOIN LATERAL (\n            SELECT username FROM users WHERE users.id = pastes.author_id\n        ) AS u ON username IS NOT NULL\n        WHERE\n            id = $1\n    "
-  },
   "50293c2e54af11d4c2a553e29b671cef087a159c6ee7182d8ca929ecb748f3b7": {
     "describe": {
       "columns": [],
@@ -234,6 +160,87 @@
       }
     },
     "query": "UPDATE pastes SET views = views + 1 RETURNING views"
+  },
+  "6307d0c48ec045a2b07bcdab2549b1ce17345682e85a6c2909ab823a47969c4e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "author_id",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "visibility",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "password",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "views",
+          "ordinal": 6,
+          "type_info": "Int4"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 7,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "username?",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "stars",
+          "ordinal": 9,
+          "type_info": "Int8"
+        },
+        {
+          "name": "starred",
+          "ordinal": 10,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        SELECT\n            pastes.*,\n            u.username AS \"username?\",\n            (SELECT COUNT(*) FROM stars WHERE paste_id = pastes.id) AS stars,\n            EXISTS(SELECT 1 FROM stars WHERE paste_id = pastes.id AND user_id = $2) AS starred\n        FROM\n            pastes\n        LEFT JOIN LATERAL (\n            SELECT username FROM users WHERE users.id = pastes.author_id\n        ) AS u ON username IS NOT NULL\n        WHERE\n            id = $1\n    "
   },
   "68e900ff71ac44e3698956591be483101cd80636b098b15f29e4d26b16faf16d": {
     "describe": {

@@ -35,6 +35,9 @@ const GlobalStyle = createGlobalStyle`
     --color-success-blend: #43ba52;
     --color-error: #f53c45;
     --color-error-filter: invert(27%) sepia(95%) saturate(1768%) hue-rotate(337deg) brightness(100%) contrast(92%);
+    --color-star: #fcb603;
+    --color-star-filter: invert(59%) sepia(95%) saturate(900%) hue-rotate(3deg) brightness(108%) contrast(98%);
+    --color-star-background: #e6a500;
   }
 
   .theme_light {
@@ -68,7 +71,7 @@ const GlobalStyle = createGlobalStyle`
   code {
     font-family: var(--font-monospace);
   }
-  
+
   html {
     position: relative;
     min-height: 100%;
@@ -82,7 +85,7 @@ const GlobalStyle = createGlobalStyle`
     margin: 0;
     /* There should be no horizontal overflow, if there is then it is probably a bug. */
     overflow-x: hidden;
-    
+
     @media screen and (max-width: 767px) {
       padding-bottom: 110px;
     }

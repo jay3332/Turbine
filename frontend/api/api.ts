@@ -8,7 +8,8 @@ export enum RequestMethod {
   PATCH = "PATCH",
 }
 
-export type ApiResponse<T> = [ 400 | 401 | 403 | 404 | 409 | 500 | 502, { message: string } ] | [ number, T ];
+type ErrorCodes = 400 | 401 | 403 | 404 | 409 | 500 | 502;
+export type ApiResponse<T> = [ ErrorCodes, { message: string } ] | [ Exclude<number, ErrorCodes>, T ];
 
 export type RequestOptions = {
   cookies?: Partial<{ [key: string]: string; }>,
@@ -100,4 +101,8 @@ export async function createPaste(payload: OutboundPasteData, options?: RequestO
     json: payload,
     ...options,
   });
+}
+
+export async function toggleStar(pasteId: string, options?: RequestOptions): Promise<ApiResponse<{ stars: number, deleted: boolean }>> {
+  return request<{ stars: number, deleted: boolean }>(RequestMethod.PUT, `/pastes/${pasteId}/stars`, options);
 }
