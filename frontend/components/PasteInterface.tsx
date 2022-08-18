@@ -994,6 +994,8 @@ export function ReadOnlyPasteInterface({ data }: { data: InboundPasteData }) {
 
               setStarred(!response.deleted);
               setStarCount(response.stars);
+            } else {
+              toast.error(`Error starring paste: ${(compound[1] as { message: string }).message}`);
             }
           }}>
             <StarIconImage starred={starred ?? false} src={starred ? StarIcon : StarHollowIcon} alt="Star" />
