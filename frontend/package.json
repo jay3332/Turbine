@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "ace-builds": "^1.7.1",
+    "js-cookie": "^3.0.1",
     "next": "12.2.0",
     "react": "18.2.0",
     "react-ace": "^10.1.0",
@@ -20,6 +21,7 @@
     "babel-plugin-styled-components": "^2.0.7"
   },
   "devDependencies": {
+    "@types/js-cookie": "^3.0.2",
     "@types/node": "18.0.0",
     "@types/react": "18.0.14",
     "@types/react-dom": "18.0.5",

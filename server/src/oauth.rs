@@ -30,6 +30,19 @@ struct GithubUserTokenData {
     access_token: String,
 }
 
+#[derive(Deserialize)]
+struct GithubEmailData {
+    email: String,
+    primary: bool,
+    verified: bool,
+}
+
+#[derive(Deserialize)]
+pub struct GithubUserData {
+    pub id: u32,
+    pub avatar_url: String,
+}
+
 pub fn setup() {
     let client = Client::builder()
         .user_agent(concat!(
@@ -60,4 +73,59 @@ pub async fn get_github_token(code: String) -> Result<String, JsonResponse<Error
     }
 
     Ok(resp.json::<GithubUserTokenData>().await?.access_token)
+}
+
+pub async fn get_github_user(code: String) -> Result<GithubUserData, JsonResponse<Error>> {
+    let token = get_github_token(code).await?;
+
+    // SAFETY: we have already done .expect when calling get_github_token
+    let client = unsafe { CLIENT.get().unwrap_unchecked() };
+
+    let data = client
+        .get("https://api.github.com/user")
+        .header("Authorization", format!("Bearer {}", token))
+        .send()
+        .await?
+        .json::<GithubUserData>()
+        .await?;
+
+    Ok(data)
+}
+
+pub async fn get_github_info(
+    code: String,
+) -> Result<(String, GithubUserData), JsonResponse<Error>> {
+    let token = get_github_token(code).await?;
+
+    // SAFETY: we have already done .expect when calling get_github_token
+    let client = unsafe { CLIENT.get().unwrap_unchecked() };
+
+    let email = client
+        .get("https://api.github.com/user/emails")
+        .header("Authorization", format!("Bearer {}", token))
+        .header("Accept", "application/vnd.github+json")
+        .send()
+        .await?
+        .json::<Vec<GithubEmailData>>()
+        .await?
+        .into_iter()
+        .find_map(|email| (email.primary && email.verified).then_some(email.email))
+        .ok_or_else(|| {
+            (
+                400,
+                Error {
+                    message: "GitHub account does not have a primary or verified email".to_string(),
+                },
+            )
+        })?;
+
+    let data = client
+        .get("https://api.github.com/user")
+        .header("Authorization", format!("Bearer {}", token))
+        .send()
+        .await?
+        .json::<GithubUserData>()
+        .await?;
+
+    Ok((email, data))
 }

@@ -4,9 +4,11 @@ import { useRouter } from 'next/router'
 
 import { createPaste } from "../api/api";
 import PasteInterface from "../components/PasteInterface";
+import {useAllCookies} from "../hooks/useCookie";
 
 const NewPaste: NextPage = () => {
   const router = useRouter();
+  const [cookies, _] = useAllCookies();
 
   return (
     <>
@@ -17,7 +19,7 @@ const NewPaste: NextPage = () => {
         <meta property="og:description" content="Turbine is a modern and open-source pastebin service." />
       </Head>
       <PasteInterface callback={async (payload) => {
-        const [ status, data ] = await createPaste(payload);
+        const [ status, data ] = await createPaste(payload, { cookies });
 
         await router.push(status === 201 ? `/${data.id}` : '/500');
       }} />

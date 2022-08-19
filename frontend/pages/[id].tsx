@@ -4,9 +4,9 @@ import Head from 'next/head'
 import { getPaste } from '../api/api'
 import PasteInterface, { type InboundPasteData } from '../components/PasteInterface';
 
-export const getServerSideProps: GetServerSideProps = async ({ params, req: { cookies } }) => {
+export const getServerSideProps: GetServerSideProps = async ({ params, req: { cookies, headers } }) => {
   const { id } = params! as { id: string };
-  const [ status, data ] = await getPaste(id, { cookies });
+  const [ status, data ] = await getPaste(id, { cookies, headers: headers as Record<string, string> });
 
   if (status === 404) {
     return { notFound: true }

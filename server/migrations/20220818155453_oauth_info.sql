@@ -1,0 +1,2 @@
+ALTER TABLE users ADD COLUMN github_id INTEGER;
+ALTER TABLE users ADD COLUMN avatar_url TEXT;

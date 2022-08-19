@@ -1,4 +1,5 @@
 import type { InboundPasteData, OutboundPasteData } from "../components/PasteInterface";
+import type { User } from "../components/NavBar";
 
 export enum RequestMethod {
   GET = "GET",
@@ -105,4 +106,26 @@ export async function createPaste(payload: OutboundPasteData, options?: RequestO
 
 export async function toggleStar(pasteId: string, options?: RequestOptions): Promise<ApiResponse<{ stars: number, deleted: boolean }>> {
   return request<{ stars: number, deleted: boolean }>(RequestMethod.PUT, `/pastes/${pasteId}/stars`, options);
+}
+
+export async function login(payload: { username?: string, email?: string, password: string }, options?: RequestOptions): Promise<ApiResponse<{ id: string, token: string }>> {
+  return request<{ id: string, token: string }>(RequestMethod.POST, "/login", {
+    json: payload,
+    ...options,
+  });
+}
+
+export async function getMe(options: RequestOptions): Promise<ApiResponse<User>> {
+  return request<User>(RequestMethod.GET, "/users/me", options);
+}
+
+export async function getUser(id: string, options?: RequestOptions): Promise<ApiResponse<User>> {
+  return request<User>(RequestMethod.GET, `/users/${id}`, options);
+}
+
+export async function loginGithub(access_code: string, options?: RequestOptions): Promise<ApiResponse<{ id: string, token: string }>> {
+  return request<{ id: string, token: string }>(RequestMethod.POST, "/login/github", {
+    json: { access_code },
+    ...options,
+  });
 }

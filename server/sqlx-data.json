@@ -13,6 +13,26 @@
     },
     "query": "DELETE FROM stars WHERE user_id = $1 AND paste_id = $2"
   },
+  "08baa3d4e15821d791a1981a6abf653991dcc0901cea49156cd202d10ed2968c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "SELECT id FROM users WHERE github_id = $1"
+  },
   "0eb831986fc4605009c745b553a1bd614056063ad34c971dab2d36f7174e885d": {
     "describe": {
       "columns": [],
@@ -45,6 +65,22 @@
       }
     },
     "query": "SELECT username FROM users WHERE username = $1"
+  },
+  "2800be4150991893b55879ae82aacd6083ba9a0668809341fe23a41f84adf214": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text",
+          "Int4",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        INSERT INTO\n            users (id, username, github_email, github_id, avatar_url)\n        VALUES ($1, $2, $3, $4, $5)\n        "
   },
   "32db067ee512f84092fda411950c08c46518b2c6be846c1b07072d8b10840fc7": {
     "describe": {
@@ -98,7 +134,20 @@
     },
     "query": "DELETE FROM users WHERE id = $1"
   },
-  "5352ed0a258472751157a85b8f40d96ac3099dd96c54c4167cacc0e3539aba7e": {
+  "53b42ad582c42123575242836dea5b16c68be148adccef132e6fb9cbff824f82": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO tokens VALUES ($1, $2)"
+  },
+  "547fa29545e0c7893918514560c5264f8eddd6f7ce87ad5b1198e058c53f102d": {
     "describe": {
       "columns": [
         {
@@ -115,12 +164,24 @@
           "name": "created_at",
           "ordinal": 2,
           "type_info": "Timestamptz"
+        },
+        {
+          "name": "avatar_url",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "github_id",
+          "ordinal": 4,
+          "type_info": "Int4"
         }
       ],
       "nullable": [
         false,
         true,
-        false
+        false,
+        true,
+        true
       ],
       "parameters": {
         "Left": [
@@ -128,38 +189,7 @@
         ]
       }
     },
-    "query": "SELECT username, email, created_at FROM users WHERE id = $1"
-  },
-  "53b42ad582c42123575242836dea5b16c68be148adccef132e6fb9cbff824f82": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text"
-        ]
-      }
-    },
-    "query": "INSERT INTO tokens VALUES ($1, $2)"
-  },
-  "5cc5ce16b3c19bf25ce2efc14bbcadc757defba7df4e45f80939efff24628dcd": {
-    "describe": {
-      "columns": [
-        {
-          "name": "views",
-          "ordinal": 0,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "UPDATE pastes SET views = views + 1 RETURNING views"
+    "query": "SELECT username, email, created_at, avatar_url, github_id FROM users WHERE id = $1"
   },
   "6307d0c48ec045a2b07bcdab2549b1ce17345682e85a6c2909ab823a47969c4e": {
     "describe": {
@@ -365,7 +395,7 @@
       ],
       "nullable": [
         false,
-        false
+        true
       ],
       "parameters": {
         "Left": [
@@ -415,6 +445,26 @@
     },
     "query": "SELECT author_id FROM pastes WHERE id = $1"
   },
+  "b1d729bfcdd06616da6c1f2a62dd66d0ac4208d5bee62f80f0aff6f68e4111ce": {
+    "describe": {
+      "columns": [
+        {
+          "name": "views",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE pastes SET views = views + 1 WHERE id = $1 RETURNING views"
+  },
   "b3de938995c744adfb9171880990e92f295faf8618cf0f5650d91c9067be6821": {
     "describe": {
       "columns": [
@@ -431,7 +481,7 @@
       ],
       "nullable": [
         false,
-        false
+        true
       ],
       "parameters": {
         "Left": [

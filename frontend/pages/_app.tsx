@@ -28,6 +28,7 @@ const GlobalStyle = createGlobalStyle`
     --color-primary: #0d6aff;
     --color-primary-filter: invert(28%) sepia(94%) saturate(1641%) hue-rotate(206deg) brightness(101%) contrast(114%);
     --color-primary-blend: #1f59b6;
+    --color-primary-gradient: #c400ff;
     --color-secondary: #d87a27;
     --color-secondary-blend: #c16617;
     --color-success: #54e868;
@@ -54,6 +55,7 @@ const GlobalStyle = createGlobalStyle`
     --color-primary: #0d6aff;
     --color-primary-filter: invert(28%) sepia(94%) saturate(1641%) hue-rotate(206deg) brightness(101%) contrast(114%);
     --color-primary-blend: #5895f6;
+    --color-primary-gradient: #c400ff;
     --color-secondary: #d87a27;
     --color-secondary-blend: #ed9f5b;
     --color-success: #2cc842;
@@ -61,6 +63,9 @@ const GlobalStyle = createGlobalStyle`
     --color-success-blend: #43ba52;
     --color-error: #f53c45;
     --color-error-filter: invert(30%) sepia(89%) saturate(1236%) hue-rotate(328deg) brightness(98%) contrast(103%);
+    --color-star: #fcb603;
+    --color-star-filter: invert(59%) sepia(95%) saturate(900%) hue-rotate(3deg) brightness(108%) contrast(98%);
+    --color-star-background: #e6a500;
   }
 
   * {
@@ -163,7 +168,7 @@ const GlobalStyle = createGlobalStyle`
     border: none !important;
     display: flex;
     flex-direction: column;
-    max-width: 75vw;
+    max-width: 85vw;
     max-height: 75vh;
     overflow-y: auto;
   }

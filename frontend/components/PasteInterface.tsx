@@ -3,6 +3,7 @@ import NextImage from 'next/future/image';
 import { useRouter } from "next/router";
 import styled from 'styled-components'
 import {type FormEvent, useEffect, useRef, useState} from "react";
+import { useAllCookies } from "../hooks/useCookie";
 
 import { toast } from 'react-toastify'
 import Modal from './Modal';
@@ -954,6 +955,7 @@ export function ReadOnlyPasteInterface({ data }: { data: InboundPasteData }) {
   const [ expanded, setExpanded ] = useState<number[]>(Object.keys(data.files).map(parseInt));
   const [ starred, setStarred ] = useState<boolean>();
   const [ starCount, setStarCount ] = useState<number>(data.stars);
+  const [ cookies, _ ] = useAllCookies();
   const router = useRouter();
 
   useEffect(() => {
@@ -986,7 +988,7 @@ export function ReadOnlyPasteInterface({ data }: { data: InboundPasteData }) {
             <ViewCountNumber>{data.views.toLocaleString()}</ViewCountNumber>
           </ViewCount>
           <StarButton starred={starred ?? false} onClick={async () => {
-            let compound = await toggleStar(data.id);
+            let compound = await toggleStar(data.id, { cookies });
 
             // This way, the types are bound together, and we can use a type-guard to reduce the types
             if (compound[0] === 200) {

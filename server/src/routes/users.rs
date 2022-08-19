@@ -3,6 +3,7 @@ use crate::{
     auth::{generate_id, generate_token},
     get_pool,
     json::Error,
+    oauth::{get_github_info, get_github_user},
     routes::pastes::{File, PastePreview, PasteVisibility},
     RatelimitLayer,
 };
@@ -30,6 +31,8 @@ pub struct User {
     // Email will only be returned if this is the current user
     pub email: Option<String>,
     pub created_at: i64,
+    pub avatar_url: Option<String>,
+    pub github_id: Option<i32>,
 }
 
 #[derive(Clone, Deserialize)]
@@ -37,6 +40,12 @@ pub struct UserPayload {
     pub username: String,
     pub email: String,
     pub password: String,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct GithubUserPayload {
+    pub username: String,
+    pub access_code: String,
 }
 
 #[derive(Clone, Serialize)]
@@ -49,6 +58,11 @@ pub struct LoginPayload {
     pub username: Option<String>,
     pub email: Option<String>,
     pub password: String,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct GithubLoginPayload {
+    pub access_code: String,
 }
 
 #[derive(Clone, Serialize)]
@@ -82,7 +96,7 @@ pub async fn get_user(
     Path(id): Path<String>,
 ) -> Result<JsonResponse<User>, JsonResponse<Error>> {
     let user = sqlx::query!(
-        "SELECT username, email, created_at FROM users WHERE id = $1",
+        "SELECT username, email, created_at, avatar_url, github_id FROM users WHERE id = $1",
         id
     )
     .fetch_optional(get_pool())
@@ -105,6 +119,8 @@ pub async fn get_user(
                 .then(|| user.email),
         ),
         created_at: user.created_at.timestamp(),
+        avatar_url: user.avatar_url,
+        github_id: user.github_id,
     }))
 }
 
@@ -115,8 +131,38 @@ pub async fn get_self(
     get_user(Some(Authorization(user_id.clone())), Path(user_id)).await
 }
 
+fn validate_username(username: &str) -> Result<(), JsonResponse<Error>> {
+    if username.chars().count() < 3 || username.chars().count() > 32 {
+        return Err(JsonResponse(
+            StatusCode::BAD_REQUEST,
+            Error {
+                message: "Username must be between 3 and 32 characters long".to_string(),
+            },
+        ));
+    }
+
+    if !username.chars().all(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '-')) {
+        return Err(JsonResponse(
+            StatusCode::BAD_REQUEST,
+            Error {
+                message: "Username must only contain alphanumeric characters, _ and -".to_string(),
+            },
+        ));
+    }
+
+    if username.starts_with('-') || username.ends_with('-') {
+        return Err(JsonResponse(
+            StatusCode::BAD_REQUEST,
+            Error {
+                message: "Username must not start or end with -".to_string(),
+            },
+        ));
+    }
+
+    Ok(())
+}
+
 /// POST /users
-/// TODO: GitHub logins
 ///
 /// # Limits
 /// - 5 requests per 30 seconds
@@ -130,14 +176,7 @@ pub async fn create_user(
         password,
     }): Json<UserPayload>,
 ) -> Result<JsonResponse<UserCreateResponse>, JsonResponse<Error>> {
-    if username.chars().count() < 3 || username.chars().count() > 32 {
-        return Err(JsonResponse(
-            StatusCode::BAD_REQUEST,
-            Error {
-                message: "Username must be between 3 and 32 characters long".to_string(),
-            },
-        ));
-    }
+    validate_username(&username)?;
 
     if password.chars().count() < 6 || password.chars().count() > 128 {
         return Err(JsonResponse(
@@ -210,6 +249,73 @@ pub async fn create_user(
     Ok(JsonResponse(StatusCode::CREATED, UserCreateResponse { id }))
 }
 
+/// POST /users/github
+///
+/// # Limits
+/// - 5 requests per 30 seconds
+/// - Username between 3 to 32 characters and unique
+/// - GitHub email must be verified
+pub async fn create_user_github(
+    Json(GithubUserPayload {
+        username,
+        access_code,
+    }): Json<GithubUserPayload>,
+) -> Result<JsonResponse<UserCreateResponse>, JsonResponse<Error>> {
+    validate_username(&username)?;
+
+    let (email, github_data) = get_github_info(access_code).await?;
+    let db = get_pool();
+
+    if sqlx::query!(
+        "SELECT id FROM users WHERE github_id = $1",
+        github_data.id as i32
+    )
+    .fetch_optional(db)
+    .await?
+    .is_some()
+    {
+        return Err(JsonResponse(
+            StatusCode::CONFLICT,
+            Error {
+                message:
+                    "An account already exists that is associated with that GitHub account already"
+                        .to_string(),
+            },
+        ));
+    }
+    if sqlx::query!("SELECT id FROM users WHERE username = $1", username)
+        .fetch_optional(db)
+        .await?
+        .is_some()
+    {
+        return Err(JsonResponse(
+            StatusCode::CONFLICT,
+            Error {
+                message: "Username already taken".to_string(),
+            },
+        ));
+    }
+
+    let id = generate_id::<12>();
+
+    sqlx::query!(
+        "
+        INSERT INTO
+            users (id, username, github_email, github_id, avatar_url)
+        VALUES ($1, $2, $3, $4, $5)
+        ",
+        id,
+        username,
+        email,
+        github_data.id as i32,
+        github_data.avatar_url,
+    )
+    .execute(db)
+    .await?;
+
+    Ok(JsonResponse(StatusCode::CREATED, UserCreateResponse { id }))
+}
+
 /// POST /login
 ///
 /// # Limits
@@ -265,6 +371,15 @@ pub async fn login(
         ));
     };
 
+    let hashed = hashed.ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            Error {
+                message: "You registered using a different method such as GitHub or Google. Please try using the method you registered with to login instead.".to_string(),
+            },
+        )
+    })?;
+
     if !verify(password, hashed).await? {
         return Err(JsonResponse(
             StatusCode::UNAUTHORIZED,
@@ -273,6 +388,41 @@ pub async fn login(
             },
         ));
     }
+
+    let token = generate_token(id.clone());
+
+    sqlx::query!("INSERT INTO tokens VALUES ($1, $2)", id, token)
+        .execute(db)
+        .await?;
+
+    Ok(JsonResponse::ok(LoginResponse { id, token }))
+}
+
+/// POST /login/github
+///
+/// # Limits
+/// - 1 request per 20 seconds
+pub async fn login_github(
+    Json(GithubLoginPayload { access_code }): Json<GithubLoginPayload>,
+) -> Result<JsonResponse<LoginResponse>, JsonResponse<Error>> {
+    let github_data = get_github_user(access_code).await?;
+
+    let db = get_pool();
+    let id = sqlx::query!(
+        "SELECT id FROM users WHERE github_id = $1",
+        github_data.id as i32
+    )
+    .fetch_optional(db)
+    .await?
+    .ok_or_else(|| {
+        (
+            StatusCode::NOT_FOUND,
+            Error {
+                message: "User not found".to_string(),
+            },
+        )
+    })?
+    .id;
 
     let token = generate_token(id.clone());
 
@@ -566,6 +716,10 @@ pub fn router() -> Router {
             get(get_self.layer(ratelimit!(5, 5))).delete(delete_user.layer(ratelimit!(2, 10))),
         )
         .route(
+            "/users/github",
+            post(create_user_github.layer(ratelimit!(5, 5))),
+        )
+        .route(
             "/users/:id/stars",
             get(list_user_stars.layer(ratelimit!(5, 5))),
         )
@@ -578,5 +732,6 @@ pub fn router() -> Router {
                 put_star.layer(ratelimit!(5, 7)),
             ),
         )
+        .route("/login/github", post(login_github.layer(ratelimit!(2, 8))))
         .route("/login", post(login.layer(ratelimit!(2, 8))))
 }

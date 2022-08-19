@@ -130,10 +130,13 @@ pub async fn get_paste(
         )
     })?;
 
-    let views = sqlx::query!("UPDATE pastes SET views = views + 1 RETURNING views")
-        .fetch_one(db)
-        .await?
-        .views;
+    let views = sqlx::query!(
+        "UPDATE pastes SET views = views + 1 WHERE id = $1 RETURNING views",
+        id,
+    )
+    .fetch_one(db)
+    .await?
+    .views;
 
     if paste.visibility == 0 && auth.is_none() {
         return Err(JsonResponse(
