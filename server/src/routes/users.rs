@@ -51,6 +51,7 @@ pub struct GithubUserPayload {
 #[derive(Clone, Serialize)]
 pub struct UserCreateResponse {
     pub id: String,
+    pub token: String,
 }
 
 #[derive(Clone, Deserialize)]
@@ -249,7 +250,13 @@ pub async fn create_user(
     .execute(db)
     .await?;
 
-    Ok(JsonResponse(StatusCode::CREATED, UserCreateResponse { id }))
+    let token = generate_token(id.clone());
+
+    sqlx::query!("INSERT INTO tokens VALUES ($1, $2)", id, token)
+        .execute(db)
+        .await?;
+
+    Ok(JsonResponse(StatusCode::CREATED, UserCreateResponse { id, token }))
 }
 
 /// POST /users/github
@@ -316,7 +323,13 @@ pub async fn create_user_github(
     .execute(db)
     .await?;
 
-    Ok(JsonResponse(StatusCode::CREATED, UserCreateResponse { id }))
+    let token = generate_token(id.clone());
+
+    sqlx::query!("INSERT INTO tokens VALUES ($1, $2)", id, token)
+        .execute(db)
+        .await?;
+
+    Ok(JsonResponse(StatusCode::CREATED, UserCreateResponse { id, token }))
 }
 
 /// POST /login

@@ -438,22 +438,16 @@ export function RegisterModal({ setUserData, setToken, setPage }: LoginProps) {
         let [status, response] = await register(payload);
 
         if (status === 201) {
-          let [loginStatus, loginResponse] = await login({ email, password });
+          let { token } = response as { token: string };
+          let userCompound = await getMe({ cookies: { token } });
 
-          if (loginStatus === 200) {
-            let { token } = loginResponse as { token: string };
-            let userCompound = await getMe({ cookies: { token } });
-
-            if (userCompound[0] === 200) {
-              let user = userCompound[1];
-              setUserData(user);
-              setToken(token);
-              window.location.reload();
-            } else {
-              setError((userCompound[1] as { message: string }).message);
-            }
+          if (userCompound[0] === 200) {
+            let user = userCompound[1];
+            setUserData(user);
+            setToken(token);
+            window.location.reload();
           } else {
-            setError((loginResponse as { message: string }).message);
+            setError((userCompound[1] as { message: string }).message);
           }
         } else {
           let { message } = response as { message: string };

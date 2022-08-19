@@ -117,14 +117,14 @@ export async function login(payload: { username?: string, email?: string, passwo
   });
 }
 
-export async function register(payload: { username: string, email: string, password: string }, options?: RequestOptions): Promise<ApiResponse<{ id: string }>> {
+export async function register(payload: { username: string, email: string, password: string }, options?: RequestOptions): Promise<ApiResponse<{ id: string, token: string }>> {
   return request<{ id: string, token: string }>(RequestMethod.POST, "/users", {
     json: payload,
     ...options,
   });
 }
 
-export async function registerGithub(payload: { username: string, access_code: string }, options?: RequestOptions): Promise<ApiResponse<{ id: string }>> {
+export async function registerGithub(payload: { username: string, access_code: string }, options?: RequestOptions): Promise<ApiResponse<{ id: string, token: string }>> {
   return request<{ id: string, token: string }>(RequestMethod.POST, "/users/github", {
     json: payload,
     ...options,

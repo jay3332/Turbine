@@ -56,26 +56,19 @@ export default function AuthorizeGitHub() {
         let [status, response] = await registerGithub({ username, access_code: code });
 
         if (status === 201) {
-          let [loginStatus, loginResponse] = await loginGithub(code);
+          let { token } = response as { token: string };
+          let userCompound = await getMe({ cookies: { token } });
 
-          if (loginStatus === 200) {
-            let { token } = loginResponse as { token: string };
-            let userCompound = await getMe({ cookies: { token } });
-
-            if (userCompound[0] === 200) {
-              let user = userCompound[1];
-              setUserData(user);
-              setToken(token);
-              setUrl(redirect);
-              // @ts-ignore
-              window.location = redirect;
-            } else {
-              setUrl(redirect);
-              setFailed((userCompound[1] as { message: string }).message);
-            }
+          if (userCompound[0] === 200) {
+            let user = userCompound[1];
+            setUserData(user);
+            setToken(token);
+            setUrl(redirect);
+            // @ts-ignore
+            window.location = redirect;
           } else {
             setUrl(redirect);
-            setFailed((loginResponse as { message: string }).message);
+            setFailed((userCompound[1] as { message: string }).message);
           }
         } else {
           setUrl(redirect);
