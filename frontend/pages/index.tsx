@@ -158,7 +158,7 @@ const Home: NextPage = () => {
 
   useEffect(() => {
     document.addEventListener("keydown", async (event) => {
-      if (event.key.toLowerCase() === 'n') {
+      if (event.key?.toLowerCase() === 'n') {
         await router.push("/new");
       }
     })

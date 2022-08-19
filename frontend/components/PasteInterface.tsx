@@ -994,8 +994,8 @@ export function ReadOnlyPasteInterface({ data }: { data: InboundPasteData }) {
             if (compound[0] === 200) {
               let [_, response] = compound;
 
-              setStarred(!response.deleted);
               setStarCount(response.stars);
+              setStarred(!response.deleted);
             } else {
               toast.error(`Error starring paste: ${(compound[1] as { message: string }).message}`);
             }

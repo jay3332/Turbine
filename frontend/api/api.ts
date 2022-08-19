@@ -19,7 +19,9 @@ export type RequestOptions = {
 };
 
 // TODO: change this to turbine domain
-export const BASE_API_URL: string = 'https://pastebackend.bobobot.cf/api';
+export const BASE_API_URL: string = process.env.NODE_ENV === 'production'
+  ? 'https://pastebackend.bobobot.cf/api'
+  : 'http://127.0.0.1:8081/api';
 
 export async function request<Response>(
   method: RequestMethod,
@@ -110,6 +112,20 @@ export async function toggleStar(pasteId: string, options?: RequestOptions): Pro
 
 export async function login(payload: { username?: string, email?: string, password: string }, options?: RequestOptions): Promise<ApiResponse<{ id: string, token: string }>> {
   return request<{ id: string, token: string }>(RequestMethod.POST, "/login", {
+    json: payload,
+    ...options,
+  });
+}
+
+export async function register(payload: { username: string, email: string, password: string }, options?: RequestOptions): Promise<ApiResponse<{ id: string }>> {
+  return request<{ id: string, token: string }>(RequestMethod.POST, "/users", {
+    json: payload,
+    ...options,
+  });
+}
+
+export async function registerGithub(payload: { username: string, access_code: string }, options?: RequestOptions): Promise<ApiResponse<{ id: string }>> {
+  return request<{ id: string, token: string }>(RequestMethod.POST, "/users/github", {
     json: payload,
     ...options,
   });

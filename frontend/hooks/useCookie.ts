@@ -19,7 +19,7 @@ function useCookie<T = string>(
   name: string,
   serialize: (value: T) => string = identity,
   deserialize: (value: string) => T = identity,
-): [T | undefined, (value: T) => void] {
+): [T | undefined, (value?: T) => void] {
   const [cookie, setCookie] = useState<T>();
 
   useEffect(() => {
@@ -27,7 +27,13 @@ function useCookie<T = string>(
     setCookie(value != null ? deserialize(value) : undefined);
   }, [deserialize, name]);
 
-  let edit = useCallback((value: T) => Cookies.set(name, serialize(value)), [name]);
+  let edit = useCallback((value?: T) => {
+    if (value != null) {
+      Cookies.set(name, serialize(value));
+    } else {
+      Cookies.remove(name);
+    }
+  }, [name, serialize]);
 
   return [cookie, edit];
 }

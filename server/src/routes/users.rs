@@ -141,7 +141,10 @@ fn validate_username(username: &str) -> Result<(), JsonResponse<Error>> {
         ));
     }
 
-    if !username.chars().all(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '-')) {
+    if !username
+        .chars()
+        .all(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '-'))
+    {
         return Err(JsonResponse(
             StatusCode::BAD_REQUEST,
             Error {
@@ -602,7 +605,7 @@ pub async fn put_star(
     let db = get_pool();
     let mut transaction = db.begin().await?;
 
-    let initial_stars = sqlx::query!(
+    let mut initial_stars = sqlx::query!(
         "SELECT COUNT(*) AS count FROM stars WHERE paste_id = $1",
         paste_id,
     )
@@ -639,6 +642,9 @@ pub async fn put_star(
         .rows_affected();
 
         assert_eq!(deleted, 1);
+        initial_stars -= 1;
+    } else {
+        initial_stars += 1;
     }
 
     transaction.commit().await?;
