@@ -988,6 +988,11 @@ export function ReadOnlyPasteInterface({ data }: { data: InboundPasteData }) {
             <ViewCountNumber>{data.views.toLocaleString()}</ViewCountNumber>
           </ViewCount>
           <StarButton starred={starred ?? false} onClick={async () => {
+            if (!cookies.token) {
+              document.getElementById('global_login')?.click();
+              return;
+            }
+
             let compound = await toggleStar(data.id, { cookies });
 
             // This way, the types are bound together, and we can use a type-guard to reduce the types
