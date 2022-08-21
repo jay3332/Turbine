@@ -39,7 +39,7 @@ const Container = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 12px;
+  margin-top: 36px;
   
   @media (max-width: 768px) {
     flex-direction: column;
@@ -89,8 +89,8 @@ const UserMiniStat = styled.div`
 `;
 
 const UserMiniStatIcon = styled(Image)`
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   margin-right: 6px;
   user-select: none;
   filter: var(--color-text-filter);
@@ -99,13 +99,13 @@ const UserMiniStatIcon = styled(Image)`
 
 const UserMiniStatValue = styled.span`
   color: var(--color-text-secondary);
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
 `;
 
 const UserMiniStatLabel = styled.span`
   color: var(--color-text-secondary);
-  font-size: 20px;
+  font-size: 18px;
 `;
 
 const Connection = styled.button<{ color: string, borderColor: string, background: string }>`
