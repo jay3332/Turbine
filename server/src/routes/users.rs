@@ -33,6 +33,9 @@ pub struct User {
     pub created_at: i64,
     pub avatar_url: Option<String>,
     pub github_id: Option<i32>,
+    pub paste_count: u32,
+    pub stars_received: u32,
+    pub stars_given: u32,
 }
 
 #[derive(Clone, Deserialize)]
@@ -97,7 +100,23 @@ pub async fn get_user(
     Path(id): Path<String>,
 ) -> Result<JsonResponse<User>, JsonResponse<Error>> {
     let user = sqlx::query!(
-        "SELECT username, email, created_at, avatar_url, github_id FROM users WHERE id = $1",
+        r#"SELECT
+            id,
+            username,
+            email,
+            created_at,
+            avatar_url,
+            github_id,
+            (SELECT COUNT(*) FROM pastes WHERE author_id = users.id) AS paste_count,
+            (
+                SELECT COUNT(*) FROM stars
+                WHERE paste_id IN (SELECT id FROM pastes WHERE author_id = users.id)
+            ) AS stars_received,
+            (SELECT COUNT(*) FROM stars WHERE user_id = users.id) AS stars_given
+        FROM
+            users
+        WHERE
+            id = $1"#,
         id
     )
     .fetch_optional(get_pool())
@@ -122,6 +141,9 @@ pub async fn get_user(
         created_at: user.created_at.timestamp(),
         avatar_url: user.avatar_url,
         github_id: user.github_id,
+        paste_count: user.paste_count.unwrap_or(0) as u32,
+        stars_received: user.stars_received.unwrap_or(0) as u32,
+        stars_given: user.stars_given.unwrap_or(0) as u32,
     }))
 }
 
@@ -654,10 +676,9 @@ pub async fn put_star(
         .await?
         .rows_affected();
 
-        assert_eq!(deleted, 1);
-        initial_stars -= 1;
+        initial_stars -= deleted as i64;
     } else {
-        initial_stars += 1;
+        initial_stars += rows_affected as i64;
     }
 
     transaction.commit().await?;
@@ -748,7 +769,7 @@ pub fn router() -> Router {
             "/pastes/:id/stars",
             get(get_paste_stars.layer(ratelimit!(5, 5))).on(
                 MethodFilter::PUT | MethodFilter::DELETE,
-                put_star.layer(ratelimit!(5, 7)),
+                put_star.layer(ratelimit!(10, 5)),
             ),
         )
         .route("/login/github", post(login_github.layer(ratelimit!(2, 8))))

@@ -11,10 +11,13 @@ import {getMe, login, register} from "../api/api";
 import Modal from "./Modal";
 import GithubIcon from '../public/icon-github.svg';
 import Cookies from 'js-cookie';
+import {useRouter} from "next/router";
 
 const GITHUB_OAUTH_URL = process.env.NODE_ENV === 'production'
   ? 'https://github.com/login/oauth/authorize?client_id=a621caa00eb332598d2f&redirect_uri=https://paste.bobobot.cf/authorize/github&scope=read:user+user:email'
   : 'https://github.com/login/oauth/authorize?client_id=88043268409739ef49c6&redirect_uri=http://localhost:3000/authorize/github&scope=read:user+user:email';
+
+export const DEFAULT_AVATAR = 'https://cdn.lambdabot.cf/uploads/turbine_default_avatar.png';
 
 const Container = styled.div`
   display: flex;
@@ -175,7 +178,6 @@ const UserMenu = styled.div`
 const UserInfoContainer = styled.div`
   box-sizing: border-box;
   height: 100%;
-  float: right;
   overflow: hidden;
   
   &:hover ${UserMenu} {
@@ -241,6 +243,9 @@ export interface User {
   created_at: number;
   avatar_url?: string;
   github_id?: number;
+  paste_count: number;
+  stars_received: number;
+  stars_given: number;
 }
 
 export function FormInput({ label, name, ...props }: InputHTMLAttributes<any> & { label: string }) {
@@ -525,6 +530,7 @@ export default function NavBar() {
   let [userData, setUserData] = useCookie<User>('user', JSON.stringify, JSON.parse);
   let [_, setToken] = useCookie('token');
   let [page, setPage] = useState<Page>();
+  let router = useRouter();
 
   return (
     <>
@@ -547,13 +553,13 @@ export default function NavBar() {
         {userData ? (
           <UserInfoContainer>
             <UserInfo>
-              <UserAvatar
-                src={userData.avatar_url ?? 'https://cdn.lambdabot.cf/uploads/turbine_default_avatar.png'}
-                alt={userData.username}
-              />
+              <UserAvatar src={userData.avatar_url ?? DEFAULT_AVATAR} alt={userData.username} />
               <UserName>{userData.username}</UserName>
             </UserInfo>
             <UserMenu>
+              <UserMenuItem onClick={() => router.push(`/users/${userData!.id}`)}>
+                View Profile
+              </UserMenuItem>
               <UserMenuItem color={'var(--color-error)'} onClick={() => {
                 setToken();
                 setUserData();

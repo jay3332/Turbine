@@ -21,6 +21,7 @@ import EyeIcon from '../public/icon-eye.svg'
 import StarIcon from '../public/icon-star.svg'
 import StarHollowIcon from '../public/icon-star-hollow.svg'
 import {toggleStar} from "../api/api";
+import Link from "next/link";
 
 const AceEditor = dynamic(async () => {
   const reactAce = await import("react-ace");
@@ -169,6 +170,11 @@ const StarButton = styled.button<{ starred: boolean }>`
     ${StarText} {
       color: ${props => props.starred ? 'var(--color-star)' : 'var(--color-text)'};
     }
+  }
+  
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
   }
 `;
 
@@ -729,6 +735,15 @@ const ImageFileSize = styled.div`
   margin-left: 6px;
 `
 
+const GrayLink = styled.a`
+  font-weight: 700;
+  color: var(--color-text-secondary) !important;
+  
+  &:hover {
+    color: var(--color-text) !important;
+  }
+`;
+
 export interface EditorProps {
   filename?: string;
   language?: string;
@@ -885,7 +900,7 @@ function humanizeSize(bytes: number): string {
   return bytes.toFixed(2) + ' ' + units[u];
 }
 
-function humanizeDuration(seconds: number): string {
+export function humanizeDuration(seconds: number): string {
   if (seconds < 5) {
     return 'a few seconds'
   }
@@ -977,7 +992,13 @@ export function ReadOnlyPasteInterface({ data }: { data: InboundPasteData }) {
         <div>
           <ReadOnlyTitle>{data.name}</ReadOnlyTitle>
           <PasteInfo>
-            {data.author_name && `${data.author_name} \u2014 `}
+            {data.author_name && (
+              <>
+                <Link href={`/users/${data.author_id}`}>
+                  <GrayLink>{data.author_name}</GrayLink>
+                </Link> &#8212;&nbsp;
+              </>
+            )}
             Created {humanizeDuration(Date.now() / 1000 - data.created_at)} ago
           </PasteInfo>
           <ReadOnlyDescription>{data.description}</ReadOnlyDescription>
@@ -987,11 +1008,15 @@ export function ReadOnlyPasteInterface({ data }: { data: InboundPasteData }) {
             <ViewCountIcon src={EyeIcon} alt="Views" />
             <ViewCountNumber>{data.views.toLocaleString()}</ViewCountNumber>
           </ViewCount>
-          <StarButton starred={starred ?? false} onClick={async () => {
+          <StarButton starred={starred ?? false} onClick={async (e) => {
             if (!cookies.token) {
               document.getElementById('global_login')?.click();
               return;
             }
+
+            let target = e.currentTarget;
+            if (target.disabled) return;
+            target.disabled = true;
 
             let compound = await toggleStar(data.id, { cookies });
 
@@ -1004,6 +1029,7 @@ export function ReadOnlyPasteInterface({ data }: { data: InboundPasteData }) {
             } else {
               toast.error(`Error starring paste: ${(compound[1] as { message: string }).message}`);
             }
+            target.disabled = false;
           }}>
             <StarIconImage starred={starred ?? false} src={starred ? StarIcon : StarHollowIcon} alt="Star" />
             <StarText starred={starred ?? false}>{starred ? "Unstar" : "Star"}</StarText>
