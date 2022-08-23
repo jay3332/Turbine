@@ -1,5 +1,6 @@
 # Config template
 
+# Configuration variables for authentication.
 [auth]
 # The file that contains the secret key for hashing password.
 # NOTE: If the secret key changed, all the password that was hashed with another key can no longer be verified.
