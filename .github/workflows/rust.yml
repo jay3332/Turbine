@@ -38,8 +38,11 @@ jobs:
 
     - name: Setup cache
       uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: "server -> target"
 
-    - uses: zbraniecki/cached-cargo-install@v0
+    - name: Install cargo cli
+      uses: zbraniecki/cached-cargo-install@v0
       with:
         crate-name: sqlx-cli
 
