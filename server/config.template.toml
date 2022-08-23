@@ -11,7 +11,6 @@
 # openssl rand -base64 4096 > secret.key
 secret_key_path = "secret.key"
 
-
 # Configuration variables for Redis
 [redis]
 url = "redis://localhost" # The redis connection url
