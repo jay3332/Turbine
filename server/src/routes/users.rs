@@ -486,32 +486,29 @@ pub async fn delete_user(
 
 fn into_sanitized_paste(
     PastePreview {
-        id,
         author_id,
         author_name,
         created_at,
         visibility,
         stars,
         views,
+        starred_at,
         ..
     }: PastePreview,
 ) -> PastePreview {
     PastePreview {
-        id,
+        id: None,
         author_id,
         author_name,
         created_at,
         visibility,
         stars,
         views,
+        starred_at,
         available: false,
-        name: String::new(),
+        name: None,
         description: None,
-        first_file: File {
-            filename: None,
-            content: String::new(),
-            language: None,
-        },
+        first_file: None,
     }
 }
 
@@ -529,6 +526,64 @@ pub fn sanitize_paste(auth: &Option<Authorization>, preview: PastePreview) -> Pa
     into_sanitized_paste(preview)
 }
 
+/// GET /users/:uesr_id/pastes
+pub async fn list_user_pastes(
+    auth: Option<Authorization>,
+    Path(user_id): Path<String>,
+) -> Result<JsonResponse<Vec<PastePreview>>, JsonResponse<Error>> {
+    let db = get_pool();
+
+    let pastes = sqlx::query!(
+        r#"
+        SELECT
+            pastes.*,
+            u.username AS "username?",
+            f.filename AS "filename?",
+            f.content AS "content!",
+            f.language AS "language?",
+            (SELECT COUNT(*) FROM stars WHERE paste_id = pastes.id) AS stars
+        FROM
+            pastes
+        LEFT JOIN LATERAL (
+            SELECT username FROM users WHERE users.id = pastes.author_id
+        ) AS u ON username IS NOT NULL
+        LEFT JOIN LATERAL (
+            SELECT * FROM files WHERE files.paste_id = pastes.id AND files.idx = 0
+        ) AS f ON true
+        WHERE
+            author_id = $1
+        "#,
+        user_id,
+    )
+    .fetch_all(db)
+    .await?;
+
+    Ok(JsonResponse::ok(
+        pastes
+            .into_iter()
+            .map(|paste| PastePreview {
+                id: Some(paste.id),
+                name: Some(paste.name),
+                description: paste.description,
+                author_id: paste.author_id,
+                author_name: paste.username,
+                created_at: paste.created_at.timestamp(),
+                visibility: PasteVisibility::from(paste.visibility as u8),
+                stars: paste.stars.unwrap_or(0) as u32,
+                views: paste.views as u32,
+                first_file: Some(File {
+                    filename: paste.filename,
+                    content: paste.content,
+                    language: paste.language,
+                }),
+                available: true,
+                starred_at: None,
+            })
+            .map(|paste| sanitize_paste(&auth, paste))
+            .collect(),
+    ))
+}
+
 /// GET /users/:user_id/stars
 pub async fn list_user_stars(
     auth: Option<Authorization>,
@@ -544,7 +599,8 @@ pub async fn list_user_stars(
             f.filename AS "filename?",
             f.content AS "content!",
             f.language AS "language?",
-            (SELECT COUNT(*) FROM stars WHERE paste_id = pastes.id) AS stars
+            (SELECT COUNT(*) FROM stars WHERE paste_id = pastes.id) AS stars,
+            (SELECT created_at FROM stars WHERE paste_id = pastes.id AND user_id = $1) AS starred_at
         FROM
             pastes
         LEFT JOIN LATERAL (
@@ -566,8 +622,8 @@ pub async fn list_user_stars(
         stars
             .into_iter()
             .map(|paste| PastePreview {
-                id: paste.id,
-                name: paste.name,
+                id: Some(paste.id),
+                name: Some(paste.name),
                 description: paste.description,
                 author_id: paste.author_id,
                 author_name: paste.username,
@@ -575,12 +631,13 @@ pub async fn list_user_stars(
                 visibility: PasteVisibility::from(paste.visibility as u8),
                 stars: paste.stars.unwrap_or(0) as u32,
                 views: paste.views as u32,
-                first_file: File {
+                first_file: Some(File {
                     filename: paste.filename,
                     content: paste.content,
                     language: paste.language,
-                },
+                }),
                 available: true,
+                starred_at: paste.starred_at.map(|s| s.timestamp()),
             })
             .map(|paste| sanitize_paste(&auth, paste))
             .collect(),
@@ -711,6 +768,8 @@ pub async fn validate(
     }
 
     if let Some(username) = username {
+        validate_username(&username)?;
+
         if sqlx::query!("SELECT username FROM users WHERE username = $1", username)
             .fetch_optional(db)
             .await?
@@ -760,11 +819,15 @@ pub fn router() -> Router {
             post(create_user_github.layer(ratelimit!(5, 5))),
         )
         .route(
+            "/users/:id/pastes",
+            get(list_user_pastes.layer(ratelimit!(5, 5))),
+        )
+        .route(
             "/users/:id/stars",
             get(list_user_stars.layer(ratelimit!(5, 5))),
         )
         .route("/users/:id", get(get_user.layer(ratelimit!(5, 5))))
-        .route("/users", post(create_user.layer(ratelimit!(5, 30))))
+        .route("/users", post(create_user.layer(ratelimit!(5, 20))))
         .route(
             "/pastes/:id/stars",
             get(get_paste_stars.layer(ratelimit!(5, 5))).on(
@@ -772,6 +835,6 @@ pub fn router() -> Router {
                 put_star.layer(ratelimit!(10, 5)),
             ),
         )
-        .route("/login/github", post(login_github.layer(ratelimit!(2, 8))))
-        .route("/login", post(login.layer(ratelimit!(2, 8))))
+        .route("/login/github", post(login_github.layer(ratelimit!(4, 8))))
+        .route("/login", post(login.layer(ratelimit!(4, 8))))
 }

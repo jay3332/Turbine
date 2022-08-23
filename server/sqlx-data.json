@@ -102,6 +102,104 @@
     },
     "query": "SELECT user_id FROM tokens WHERE token = $1"
   },
+  "3d77bdf788852319e641f991e15f96dd1c7e8f2e487821ec77fec9e3e9fe8d8d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "author_id",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "visibility",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "password",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "views",
+          "ordinal": 6,
+          "type_info": "Int4"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 7,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "username?",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "filename?",
+          "ordinal": 9,
+          "type_info": "Text"
+        },
+        {
+          "name": "content!",
+          "ordinal": 10,
+          "type_info": "Text"
+        },
+        {
+          "name": "language?",
+          "ordinal": 11,
+          "type_info": "Text"
+        },
+        {
+          "name": "stars",
+          "ordinal": 12,
+          "type_info": "Int8"
+        },
+        {
+          "name": "starred_at",
+          "ordinal": 13,
+          "type_info": "Timestamptz"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        SELECT\n            pastes.*,\n            u.username AS \"username?\",\n            f.filename AS \"filename?\",\n            f.content AS \"content!\",\n            f.language AS \"language?\",\n            (SELECT COUNT(*) FROM stars WHERE paste_id = pastes.id) AS stars,\n            (SELECT created_at FROM stars WHERE paste_id = pastes.id AND user_id = $1) AS starred_at\n        FROM\n            pastes\n        LEFT JOIN LATERAL (\n            SELECT username FROM users WHERE users.id = pastes.author_id\n        ) AS u ON username IS NOT NULL\n        LEFT JOIN LATERAL (\n            SELECT * FROM files WHERE files.paste_id = pastes.id AND files.idx = 0\n        ) AS f ON true\n        WHERE\n            id\n        IN (SELECT paste_id FROM stars WHERE user_id = $1)\n        "
+  },
   "4560c237741ce9d4166aecd669770b3360a3ac71e649b293efb88d92c3254068": {
     "describe": {
       "columns": [
@@ -296,98 +394,6 @@
     },
     "query": "\n        SELECT\n            pastes.*,\n            u.username AS \"username?\",\n            (SELECT COUNT(*) FROM stars WHERE paste_id = pastes.id) AS stars,\n            EXISTS(SELECT 1 FROM stars WHERE paste_id = pastes.id AND user_id = $2) AS starred\n        FROM\n            pastes\n        LEFT JOIN LATERAL (\n            SELECT username FROM users WHERE users.id = pastes.author_id\n        ) AS u ON username IS NOT NULL\n        WHERE\n            id = $1\n    "
   },
-  "68e900ff71ac44e3698956591be483101cd80636b098b15f29e4d26b16faf16d": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "author_id",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "name",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "description",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "visibility",
-          "ordinal": 4,
-          "type_info": "Int2"
-        },
-        {
-          "name": "password",
-          "ordinal": 5,
-          "type_info": "Text"
-        },
-        {
-          "name": "views",
-          "ordinal": 6,
-          "type_info": "Int4"
-        },
-        {
-          "name": "created_at",
-          "ordinal": 7,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "username?",
-          "ordinal": 8,
-          "type_info": "Text"
-        },
-        {
-          "name": "filename?",
-          "ordinal": 9,
-          "type_info": "Text"
-        },
-        {
-          "name": "content!",
-          "ordinal": 10,
-          "type_info": "Text"
-        },
-        {
-          "name": "language?",
-          "ordinal": 11,
-          "type_info": "Text"
-        },
-        {
-          "name": "stars",
-          "ordinal": 12,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false,
-        true,
-        false,
-        true,
-        false,
-        true,
-        false,
-        false,
-        false,
-        true,
-        false,
-        true,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "\n        SELECT\n            pastes.*,\n            u.username AS \"username?\",\n            f.filename AS \"filename?\",\n            f.content AS \"content!\",\n            f.language AS \"language?\",\n            (SELECT COUNT(*) FROM stars WHERE paste_id = pastes.id) AS stars\n        FROM\n            pastes\n        LEFT JOIN LATERAL (\n            SELECT username FROM users WHERE users.id = pastes.author_id\n        ) AS u ON username IS NOT NULL\n        LEFT JOIN LATERAL (\n            SELECT * FROM files WHERE files.paste_id = pastes.id AND files.idx = 0\n        ) AS f ON true\n        WHERE\n            id\n        IN (SELECT paste_id FROM stars WHERE user_id = $1)\n        "
-  },
   "6b72a77f3cceef19ae665b115a21bb0fc5c3d6289c9b185705dd0bf54f6de2f2": {
     "describe": {
       "columns": [],
@@ -514,6 +520,98 @@
       }
     },
     "query": "SELECT id, password FROM users WHERE email = $1"
+  },
+  "bb12820edca4a45488c631f8c0ae6ba58fb05b930e984ebdced3a23d28ad825c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "author_id",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "visibility",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "password",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "views",
+          "ordinal": 6,
+          "type_info": "Int4"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 7,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "username?",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "filename?",
+          "ordinal": 9,
+          "type_info": "Text"
+        },
+        {
+          "name": "content!",
+          "ordinal": 10,
+          "type_info": "Text"
+        },
+        {
+          "name": "language?",
+          "ordinal": 11,
+          "type_info": "Text"
+        },
+        {
+          "name": "stars",
+          "ordinal": 12,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        SELECT\n            pastes.*,\n            u.username AS \"username?\",\n            f.filename AS \"filename?\",\n            f.content AS \"content!\",\n            f.language AS \"language?\",\n            (SELECT COUNT(*) FROM stars WHERE paste_id = pastes.id) AS stars\n        FROM\n            pastes\n        LEFT JOIN LATERAL (\n            SELECT username FROM users WHERE users.id = pastes.author_id\n        ) AS u ON username IS NOT NULL\n        LEFT JOIN LATERAL (\n            SELECT * FROM files WHERE files.paste_id = pastes.id AND files.idx = 0\n        ) AS f ON true\n        WHERE\n            author_id = $1\n        "
   },
   "c145ac9ec1b9f2799bda19e4b0b4484acae014ba45e408ea5fa72a3542e68a5f": {
     "describe": {

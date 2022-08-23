@@ -41,15 +41,17 @@ const AceEditor = dynamic(async () => {
   ssr: false,
 })
 
+export interface FileData {
+    filename: string;
+    content: string;
+    language?: string;
+}
+
 export interface InboundPasteData {
   id: string;
   name: string;
   description: string;
-  files: {
-    filename: string,
-    content: string,
-    language?: string,
-  }[];
+  files: FileData[];
   author_id: string,
   author_name: string,
   visibility: 0 | 1 | 2 | 3,
@@ -62,11 +64,7 @@ export interface InboundPasteData {
 export interface OutboundPasteData {
   name?: string;
   description?: string;
-  files: {
-    filename: string,
-    content: string,
-    language?: string,
-  }[];
+  files: FileData[];
 }
 
 export interface PasteInterfaceProps {

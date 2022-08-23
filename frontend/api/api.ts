@@ -1,4 +1,4 @@
-import type { InboundPasteData, OutboundPasteData } from "../components/PasteInterface";
+import type {FileData, InboundPasteData, OutboundPasteData} from "../components/PasteInterface";
 import type { User } from "../components/NavBar";
 
 export enum RequestMethod {
@@ -144,4 +144,28 @@ export async function loginGithub(access_code: string, options?: RequestOptions)
     json: { access_code },
     ...options,
   });
+}
+
+export interface PastePreview {
+  id: string,
+  author_id: string | null,
+  author_name: string | null,
+  name: string,
+  description: string | null,
+  visibility: 0 | 1 | 2 | 3,
+  first_file: FileData,
+  created_at: number,
+  views: number,
+  stars: number,
+  available: boolean,
+}
+
+export type PastePreviewWithStar = PastePreview & { starred_at: number };
+
+export async function getPastes(id: string, options?: RequestOptions): Promise<ApiResponse<PastePreview[]>> {
+  return request<PastePreview[]>(RequestMethod.GET, `/users/${id}/pastes`, options);
+}
+
+export async function getStarredPastes(id: string, options?: RequestOptions): Promise<ApiResponse<PastePreviewWithStar[]>> {
+  return request<PastePreviewWithStar[]>(RequestMethod.GET, `/users/${id}/stars`, options);
 }

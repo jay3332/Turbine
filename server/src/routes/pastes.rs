@@ -60,17 +60,18 @@ pub struct Paste {
 
 #[derive(Debug, Serialize)]
 pub struct PastePreview {
-    pub id: String,
+    pub id: Option<String>,
     pub author_id: Option<String>,
     pub author_name: Option<String>,
-    pub name: String,
+    pub name: Option<String>,
     pub description: Option<String>,
     pub visibility: PasteVisibility,
-    pub first_file: File,
+    pub first_file: Option<File>,
     pub created_at: i64,
     pub views: u32,
     pub stars: u32,
     pub available: bool,
+    pub starred_at: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
