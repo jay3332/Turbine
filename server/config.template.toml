@@ -1,5 +1,13 @@
 # Config template
 
+[auth]
+# The file that contains the secret key for hashing password.
+# NOTE: If the secret key changed, all the password that was hashed with another key can no longer be verified.
+# Please keep this key safe.
+# To generate a secret key, you can use the command openssl rand -base64 4096 > secret.key
+secret_key_path = "secret.key"
+
+
 # Configuration variables for Redis
 [redis]
 url = "redis://localhost" # The redis connection url
