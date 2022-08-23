@@ -37,14 +37,14 @@ jobs:
     - run: rustc --version --verbose
 
     - name: Setup cache
+      id: rust-cache
       uses: Swatinem/rust-cache@v2
       with:
         workspaces: "server -> target"
 
-    - name: Install cargo cli
-      uses: zbraniecki/cached-cargo-install@v0
-      with:
-        crate-name: sqlx-cli
+    - name: Install sqlx-cli
+      if: steps.rust-cache.outputs.cache-hit != 'true'
+      run: cargo install sqlx-cli --no-default-features --features rustls,postgres
 
     - run: cargo sqlx mig run && cargo sqlx prepare
       env:
