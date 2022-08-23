@@ -3,15 +3,31 @@ use base64::{encode_config, URL_SAFE_NO_PAD};
 use ring::rand::{SecureRandom, SystemRandom};
 
 use std::{
+    fs,
     sync::OnceLock,
     time::{SystemTime, UNIX_EPOCH},
 };
+
+use crate::get_config;
 
 pub static RNG: OnceLock<SystemRandom> = OnceLock::new();
 pub const TOKEN_EPOCH: u128 = 1_577_836_800_000; // Jan 1 2020 @ 00:00:00 UTC
 
 pub async fn configure_hasher() {
-    set_config(Config::new_insecure()).await
+    let mut config = Config::new();
+
+    let key = fs::read(&get_config().auth.secret_key_path)
+        .expect("The secret key file does not exist")
+        .into_boxed_slice();
+
+    let key: &'static mut [u8] = Box::leak(key);
+
+    config
+        .set_secret_key(Some(key))
+        .set_memory_cost(4096)
+        .set_iterations(128);
+
+    set_config(config).await
 }
 
 pub fn get_system_rng() -> &'static SystemRandom {

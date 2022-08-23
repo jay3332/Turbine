@@ -1,5 +1,16 @@
 # Config template
 
+# Configuration variables for authentication.
+[auth]
+# The file that contains the secret key for hashing passwords. Please keep this key safe!
+#
+# NOTE: Any modifications to the secret key will invalidate all passwords hashed with the previous key,
+# meaning that all passwords will fail validation. On such an event, you may have to reset or clear all passwords.
+#
+# To generate a secret key, you can run the following command:
+# openssl rand -base64 4096 > secret.key
+secret_key_path = "secret.key"
+
 # Configuration variables for Redis
 [redis]
 url = "redis://localhost" # The redis connection url

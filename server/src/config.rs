@@ -11,6 +11,12 @@ pub struct Config {
     pub database: DatabaseConfig,
     pub github: GithubConfig,
     pub redis: RedisConfig,
+    pub auth: AuthConfig,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct AuthConfig {
+    pub secret_key_path: String
 }
 
 #[derive(Clone, Deserialize)]
