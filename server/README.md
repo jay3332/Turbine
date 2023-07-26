@@ -9,7 +9,7 @@ Turbine is an unfinished project, and so is this documentation and the backend s
 Many endpoints are subject to change!
 
 ### Official Base URI
-Prefix all endpoints with the official backend URI: **https://pastebackend.bobobot.cf/api**
+Prefix all endpoints with the official backend URI: **https://turbine.jay3332.tech/api**
 
 ⚠️ **This is guaranteed to change in the future.**
 
