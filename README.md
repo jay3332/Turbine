@@ -52,6 +52,6 @@ If you'd like to contribute to Turbine, make sure you meet the following require
 ## Self-hosting?
 I don't plan on providing instructions or support for anyone who tries to self-host this.
 I would prefer you don't self-host your own instance of Turbine and instead use the official instance
-[here](https://turbine-b.in).
+[here](https://turbine.jay3332.tech).
 
 There is nothing stopping you from self-hosting, though. But please abide by the license.
