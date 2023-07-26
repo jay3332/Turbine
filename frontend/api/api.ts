@@ -20,7 +20,7 @@ export type RequestOptions = {
 
 // TODO: change this to turbine domain
 export const BASE_API_URL: string = process.env.NODE_ENV === 'production'
-  ? 'https://pastebackend.bobobot.cf/api'
+  ? 'https://turbine.jay3332.tech/api'
   : 'http://127.0.0.1:8081/api';
 
 export async function request<Response>(
