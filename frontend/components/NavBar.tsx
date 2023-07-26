@@ -14,7 +14,7 @@ import Cookies from 'js-cookie';
 import {useRouter} from "next/router";
 
 const GITHUB_OAUTH_URL = process.env.NODE_ENV === 'production'
-  ? 'https://github.com/login/oauth/authorize?client_id=a621caa00eb332598d2f&redirect_uri=https://paste.bobobot.cf/authorize/github&scope=read:user+user:email'
+  ? 'https://github.com/login/oauth/authorize?client_id=a621caa00eb332598d2f&redirect_uri=https://turbine.jay3332.tech/authorize/github&scope=read:user+user:email'
   : 'https://github.com/login/oauth/authorize?client_id=88043268409739ef49c6&redirect_uri=http://localhost:3000/authorize/github&scope=read:user+user:email';
 
 export const DEFAULT_AVATAR = 'https://cdn.lambdabot.cf/uploads/turbine_default_avatar.png';
